@@ -4,9 +4,12 @@
 import os
 import logging
 
+# # if use huggingface API
 # from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
-from llama_index.llms.ollama import Ollama
 # from llama_index.embeddings.huggingface_api import HuggingFaceInferenceAPIEmbedding
+
+# if use local LLM
+from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, StorageContext, load_index_from_storage
