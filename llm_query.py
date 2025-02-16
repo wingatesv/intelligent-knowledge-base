@@ -1,8 +1,15 @@
+# import nest_asyncio
+# nest_asyncio.apply()
+
 import os
 import logging
-from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
+
+# from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
+from llama_index.llms.ollama import Ollama
+# from llama_index.embeddings.huggingface_api import HuggingFaceInferenceAPIEmbedding
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, StorageContext, load_index_from_storage
-from llama_index.embeddings.huggingface_api import HuggingFaceInferenceAPIEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core.node_parser import SentenceSplitter
 import chromadb
@@ -41,17 +48,21 @@ def initialize_rag(api_token, embedding_model, llm_model, chunk_size, chunk_over
     # Set up text splitter
     text_splitter = SentenceSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
-    # Set up Hugging Face embedding model
-    Settings.embed_model = HuggingFaceInferenceAPIEmbedding(
-        model_name=embedding_model,
-        token=api_token,
-    )
+    # # Set up Hugging Face LLM
+    # Settings.llm = HuggingFaceInferenceAPI(
+    #     model_name=llm_model,
+    #     token=api_token,
+    # )
+    # define LLM
+    Settings.llm = Ollama(model=llm_model, request_timeout=500.0) # Replace with your Ollama model
 
-    # Set up Hugging Face LLM
-    Settings.llm = HuggingFaceInferenceAPI(
-        model_name=llm_model,
-        token=api_token,
-    )
+    # # Set up Hugging Face embedding model
+    # Settings.embed_model = HuggingFaceInferenceAPIEmbedding(
+    #     model_name=embedding_model,
+    #     token=api_token,
+    # )
+    # define embedding model (you can also use Ollama for embeddings if supported)
+    Settings.embed_model = HuggingFaceEmbedding(model_name=embedding_model)
 
     # Store settings
     Settings.chunk_size = chunk_size
