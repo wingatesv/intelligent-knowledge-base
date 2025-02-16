@@ -64,7 +64,7 @@ def change_role(role):
         msg = f"Error reinitializing RAG: {str(e)}"
         logging.error(msg)
     # If role is Teacher, disable file upload; otherwise, enable it.
-    file_update = gr.File.update(visible=True, interactive=True) if role != "Teacher" else gr.File.update(visible=False, interactive=False)
+    file_update = gr.update(visible=True, interactive=True) if role != "Teacher" else gr.update(visible=False, interactive=False)
     return msg, file_update
 
 def send_query(user_input, chat_history):
