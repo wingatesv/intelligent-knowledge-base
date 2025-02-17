@@ -152,5 +152,5 @@ def hugging_face_query(prompt, role):
 
 if __name__ == "__main__":
     # Test prompt
-    prompt = "What is product marketing mix?"
+    prompt = "What is neural network?"
     hugging_face_query(prompt)
