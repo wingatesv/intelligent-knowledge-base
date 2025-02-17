@@ -34,8 +34,6 @@ def initialize_rag(api_token, embedding_model, llm_model, chunk_size, chunk_over
     """Initialize and update the RAG database (ChromaDB) with new documents."""
     global chroma_client, vector_store, index
 
-
-
     # Initialize ChromaDB client
     chroma_client = chromadb.PersistentClient(DB_PATH)  # Persistent storage
 
