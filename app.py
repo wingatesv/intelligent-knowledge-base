@@ -134,7 +134,12 @@ def new_chat_session(chat_history):
     current_session = None
 
     updated_choices = load_existing_chat_sessions()
-    return [], {"choices": updated_choices}
+    # Reset the dropdown value. You can choose the first option or None.
+    new_value = updated_choices[0] if updated_choices else None
+    # Use gr.Dropdown.update to update both choices and value
+    dropdown_update = gr.update(choices=updated_choices, value=new_value)
+
+    return [], dropdown_update
 
 def save_on_exit(chat_history):
     """Save chat session before UI exits"""
