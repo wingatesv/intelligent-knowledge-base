@@ -46,18 +46,6 @@ class RAGSystem:
         Returns:
             None or an initialized RAG system object (depending on the implementation).
         """    
-        # Initialize ChromaDB client
-        self.chroma_client = chromadb.PersistentClient(self.DB_PATH)  # Persistent storage
-
-        # Create/retrieve the collection
-        chroma_collection = self.chroma_client.get_or_create_collection(name=self.COLLECTION_NAME)
-
-        # Set up the vector store
-        self.vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
-
-        # Create a StorageContext
-        storage_context = StorageContext.from_defaults(vector_store=self.vector_store)
-
         # Set up text splitter
         text_splitter = SentenceSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
@@ -81,6 +69,18 @@ class RAGSystem:
         Settings.chunk_size = chunk_size
         Settings.text_splitter = text_splitter
 
+        # Initialize ChromaDB client
+        self.chroma_client = chromadb.PersistentClient(self.DB_PATH)  # Persistent storage
+
+        # Create/retrieve the collection
+        chroma_collection = self.chroma_client.get_or_create_collection(name=self.COLLECTION_NAME)
+
+        # Set up the vector store
+        self.vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+
+        # Create a StorageContext
+        storage_context = StorageContext.from_defaults(vector_store=self.vector_store)
+        
         # Check if the index exists
         index_exists = os.path.lexists(self.DB_PATH) and os.path.isdir(self.DB_PATH) and os.listdir(self.DB_PATH)
 
