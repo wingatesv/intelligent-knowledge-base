@@ -5,7 +5,7 @@ import datetime
 import shutil
 import yaml
 import logging
-from llm_query import initialize_rag, hugging_face_query
+from llm_query import RAGSystem
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -47,7 +47,8 @@ def generate_session_id():
 current_session = generate_session_id()
 
 # Initialize RAG
-initialize_rag(
+rag = RAGSystem()
+rag.initialize_rag(
     api_token=api_token,
     embedding_model=embedding_model,
     llm_model=llm_model,
@@ -61,7 +62,7 @@ def change_role(role, chat_history):
     global role_global
     role_global = role
     try:
-        initialize_rag(
+        rag.initialize_rag(
             api_token=api_token,
             embedding_model=embedding_model,
             llm_model=llm_model,
@@ -89,7 +90,7 @@ def send_query(user_input, chat_history):
         return chat_history, ""
     chat_history = chat_history + [[user_input, ""]]
     try:
-        response = hugging_face_query(user_input, role_global)
+        response = rag.hugging_face_query(user_input, role_global)
     except Exception as e:
         response = f"Error: {str(e)}"
     chat_history[-1][1] = str(response)
@@ -107,7 +108,7 @@ def upload_files(files):
         new_files.append(file_name)
     try:
         # Reinitialize the RAG system after uploading new files
-        initialize_rag(
+        rag.initialize_rag(
               api_token=api_token,
               embedding_model=embedding_model,
               llm_model=llm_model,
