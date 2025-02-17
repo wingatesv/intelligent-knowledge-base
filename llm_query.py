@@ -31,7 +31,20 @@ vector_store = None
 index = None
 
 def initialize_rag(api_token, embedding_model, llm_model, chunk_size, chunk_overlap, role):
-    """Initialize and update the RAG database (ChromaDB) with new documents."""
+    """    
+    Initializes a RAG database (ChromaDB) system with the given parameters.
+
+    Args:
+        api_token (str): API token for authentication with the LLM and embedding model services.
+        embedding_model (str): Name or identifier of the embedding model used for vectorization.
+        llm_model (str): Name or identifier of the large language model used for generating responses.
+        chunk_size (int): Size of each text chunk (number of characters or tokens).
+        chunk_overlap (int): Number of overlapping characters or tokens between consecutive chunks.
+        role (str): The role or persona that the RAG system should assume when generating responses.
+
+    Returns:
+        None or an initialized RAG system object (depending on the implementation).
+    """    
     global chroma_client, vector_store, index
 
     # Initialize ChromaDB client
