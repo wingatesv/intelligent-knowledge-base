@@ -1,13 +1,5 @@
 [
   {
-    "sender": "what is marketing mix",
-    "message": " The provided context does not explicitly define or discuss the concept of \"marketing mix\". However, it mentions that in a business case, data science techniques such as predictive analytics are used to identify patterns related to customer churn, which can then be utilized for marketing actions tailored to at-risk customers. This implies that one aspect of the marketing strategy (the marketing mix) may include targeted offers or campaigns aimed at preventing customer churn. The marketing mix typically consists of Product, Price, Promotion, and Place, which are the controllable variables a business can use to achieve its marketing objectives. Without explicit information in the provided context about how these four components are being used or managed within the case, it is not possible to accurately describe the marketing mix based solely on this context."
-  },
-  {
-    "sender": "what is our first model",
-    "message": " Our first model in this context is the k-Nearest-Neighbours algorithm."
-  },
-  {
     "sender": "How is the final decision made in kNN",
     "message": " In k-Nearest Neighbors (k-NN), the final decision or prediction is made by assigning a class to a new data point based on the majority class of its k-nearest neighbors from the historical labeled data. The similarity between the new data point and the existing data points is determined using a distance metric, such as Euclidean distance, and the k-nearest neighbors are identified. The class that appears most frequently among these k-neighbors is assigned to the new data point."
   },
