@@ -1,6 +1,6 @@
 # import nest_asyncio
 # nest_asyncio.apply()
-
+import json
 import os
 import logging
 
@@ -12,7 +12,7 @@ import logging
 from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, StorageContext, load_index_from_storage
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, StorageContext, load_index_from_storage, Document
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core.node_parser import SentenceSplitter
 import chromadb
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 # Constants
 COLLECTION_NAME = "doc"
 DB_PATH = "chroma_db"  # Path to store the ChromaDB database
-
+CHAT_HISTORY_DIR = "chat_histories"
 # Global variables to store initialized models
 chroma_client = None
 vector_store = None
@@ -34,7 +34,7 @@ def initialize_rag(api_token, embedding_model, llm_model, chunk_size, chunk_over
     """Initialize and update the RAG database (ChromaDB) with new documents."""
     global chroma_client, vector_store, index
 
-    role = role
+
 
     # Initialize ChromaDB client
     chroma_client = chromadb.PersistentClient(DB_PATH)  # Persistent storage
@@ -85,8 +85,39 @@ def initialize_rag(api_token, embedding_model, llm_model, chunk_size, chunk_over
     else:
         logger.info("Creating a new index...")
 
-    # Load new documents only (incremental update)
-    documents = SimpleDirectoryReader("documents").load_data()
+   
+    # Load documents differently based on the role
+    if role == 'Teacher':
+        # Load documents from the documents directory
+        docs_from_files = SimpleDirectoryReader("documents").load_data()
+        logger.info("Loaded documents from 'documents' directory.")
+
+        # Load chat histories from the chat_histories directory
+        chat_docs = []
+        if os.path.exists(CHAT_HISTORY_DIR):
+            for file_name in os.listdir(CHAT_HISTORY_DIR):
+                if file_name.endswith(".json"):
+                    file_path = os.path.join(CHAT_HISTORY_DIR, file_name)
+                    try:
+                        with open(file_path, "r", encoding="utf-8") as file:
+                            chat_data = json.load(file)
+                        # Combine chat messages into a single text blob
+                        chat_text = "\n".join([f"{entry['sender']}: {entry['message']}" for entry in chat_data])
+                        # Create a Document with a unique id (using the file name)
+                        doc = Document(text=chat_text, doc_id=f"chat_{file_name}")
+                        chat_docs.append(doc)
+                    except Exception as e:
+                        logger.error(f"Error reading {file_name}: {e}")
+        else:
+            logger.warning(f"Chat histories directory '{CHAT_HISTORY_DIR}' does not exist.")
+
+        # Combine both sets of documents
+        documents = docs_from_files + chat_docs
+        logger.info("Combined documents from both 'documents' and 'chat_histories' directories for RAG.")
+    else:
+        # For roles other than Teacher, use only the documents folder
+        documents = SimpleDirectoryReader("documents").load_data()
+
     stored_docs = set(chroma_collection.get()["ids"])  # Get existing document IDs in ChromaDB
     new_docs = [doc for doc in documents if doc.doc_id not in stored_docs]
 
