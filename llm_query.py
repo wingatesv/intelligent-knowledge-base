@@ -15,6 +15,8 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core.node_parser import SentenceSplitter
 import chromadb
 
+import uuid
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -118,8 +120,6 @@ class RAGSystem:
     
     def update(self, filename):
         """Update the index with the new documents"""
-        import uuid
-
         # load the new documents
         new_documents = SimpleDirectoryReader(input_files=[filename]).load_data()
 
