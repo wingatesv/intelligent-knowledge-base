@@ -1,6 +1,8 @@
 import json
 import os
 import logging
+from collections import defaultdict
+import pickle
 
 # # if use huggingface API
 # from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
@@ -26,6 +28,7 @@ class RAGSystem:
     COLLECTION_NAME = "doc"
     DB_PATH = "chroma_db"  # Path to store the ChromaDB database
     CHAT_HISTORY_DIR = "chat_histories"
+    FILE_NODES_PATH = "file_nodes.pkl"
 
     def __init__(self):
         # Global variables to store initialized models
@@ -101,6 +104,10 @@ class RAGSystem:
             # load the existing index from storage
             self.index = load_index_from_storage(storage_context)  # Now safe to call
 
+            # load the existing file and nodes pair dictionary
+            with open(self.FILE_NODES_PATH, 'rb') as f:
+                self.file_nodes = pickle.load(f)            
+
         else:
             # create a new index
             logger.info("Creating a new index...")
@@ -123,16 +130,25 @@ class RAGSystem:
 
             # parse nodes
             nodes = Settings.text_splitter.get_nodes_from_documents(documents)
-            # for node in nodes:
-            #     print('node filename:', node.metadata['file_name'])  
-            #     print('node id:', node.node_id)     
-            #     print('ref doc id:', node.ref_doc_id)    
-            # print(dir(node))       
+
+            # get file and nodes
+            self.file_nodes = defaultdict(list)
+            for node in nodes:
+                file_name = node.metadata['file_name']
+                node_id = node.node_id      
+                ref_doc_id = node.ref_doc_id          
+                self.file_nodes[file_name].append(node_id)           
 
             # load the nodes as Vector Store Index
             self.index = VectorStoreIndex(nodes, storage_context=storage_context)
+
+        print(self.file_nodes)
         
-        # Persist the updated database
+        # Save the updated file_nodes
+        with open(self.FILE_NODES_PATH, 'wb') as f:
+            pickle.dump(self.file_nodes, f)                          
+
+        # Save (persist) the updated database
         self.index.storage_context.persist(self.DB_PATH)
 
 
@@ -149,44 +165,55 @@ class RAGSystem:
 
         # split to nodes
         new_nodes = Settings.text_splitter.get_nodes_from_documents(new_documents)
+
+        node_ids = []
         for node in new_nodes:
             # Create a unique document ID for each node
-            doc_id = str(uuid.uuid4()) # temporary fix, will think how to create the ID soon
-            print('doc id:',doc_id)
-            print('node meta data:', node.metadata)
+            doc_id = str(uuid.uuid4()) # temporary fix, will think how to create the ID soon                        
             
             # Convert the TextNode into a Document with required attributes
             new_doc = Document(text=node.text, doc_id=doc_id, metadata=node.metadata)
+
+            # update index
             self.index.insert(new_doc)
+
+            # record node ids
+            node_ids.append(node.node_id)
+
+        # update file_nodes
+        self.file_nodes[filename] = node_ids
         
-        # Persist the updated database
+        # Save the updated file_nodes
+        with open(self.FILE_NODES_PATH, 'wb') as f:
+            pickle.dump(self.file_nodes, f)                          
+
+        # Save (persist) the updated database
         self.index.storage_context.persist(self.DB_PATH)
 
-    def delete(self, filename):
-      """
-      Delete all documents in the index that originated from the given filename.
-      All nodes corresponding to the document will be deleted using delete_ref_doc.
-      """
-      if self.index is None:
-          logger.error("Index has not been initialized.")
-          return
 
-      docs_to_delete = []
-      # Assuming self.index.docs is a list of Document objects. Adjust as needed.
-      try:
-          for doc in getattr(self.index, "docs", []):
-              if doc.metadata.get("file_name") == filename:
-                  docs_to_delete.append(doc.doc_id)
-          print('doc to delete: ',docs_to_delete)
-          for doc_id in docs_to_delete:
-              # Delete the document from the index and docstore.
-              print(doc_id)
-              self.index.delete_ref_doc(doc_id, delete_from_docstore=True)
-          # Persist the changes to the index
-          self.index.storage_context.persist(self.DB_PATH)
-          logger.info(f"Deleted documents from index for file: {filename}")
-      except Exception as e:
-          logger.error(f"Error deleting documents for file {filename}: {e}")
+    def delete(self, filename):
+        """
+        Delete all documents in the index that originated from the given filename.
+        All nodes corresponding to the document will be deleted based on node_ids.
+        """
+        if self.index is None:
+            logger.error("Index has not been initialized.")
+            return
+
+        # get the nodes to be deleted
+        delete_nodes = self.file_nodes[os.path.basename(filename)]
+        print(self.file_nodes)
+        print(delete_nodes)
+
+        # delete nodes
+        self.index.delete_nodes(node_ids=delete_nodes, delete_from_docstore=True)
+
+        # Save the updated file_nodes
+        with open(self.FILE_NODES_PATH, 'wb') as f:
+            pickle.dump(self.file_nodes, f)                          
+
+        # Save (persist) the updated database
+        self.index.storage_context.persist(self.DB_PATH)
 
 
     def hugging_face_query(self, prompt, role):
