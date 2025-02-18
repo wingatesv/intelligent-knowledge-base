@@ -119,7 +119,12 @@ class RAGSystem:
 
     
     def update(self, filename):
-        """Update the index with the new documents"""
+        """
+        Update the index with the new documents
+
+        Slightly based on the following refereces:
+        https://github.com/run-llama/llama_index/issues/15755#issuecomment-2322795368
+        """
         # load the new documents
         new_documents = SimpleDirectoryReader(input_files=[filename]).load_data()
 
