@@ -135,7 +135,7 @@ def load_chat_session(session_name):
             session_data = json.load(file)
         return [(entry["sender"], entry["message"]) for entry in session_data]
     except Exception as e:
-        logging.error(f"Error loading chat session {session_name}: {e}")
+        logging.info(f"Error loading chat session {session_name}: {e}")
         return []
 
 def save_chat_session(chat_history):
