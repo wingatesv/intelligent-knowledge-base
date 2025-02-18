@@ -187,15 +187,16 @@ def save_chat_session(chat_history):
 def save_and_load_chat_session(chat_history, selected_session):
     """
     Saves the current chat session and then loads the chat history
-    from the selected session.
+    from the selected session. If the selected session is None, then
+    the current chat_history is returned unchanged.
     """
     global current_session
-    # Save current session if not empty
     if chat_history:
         save_chat_session(chat_history)
-    # Update the current session to the selected one
+    if not selected_session:
+        # If no valid session is selected, do nothing.
+        return chat_history
     current_session = selected_session
-    # Load and return the selected chat session
     return load_chat_session(selected_session)
 
 def new_chat_session(chat_history):
