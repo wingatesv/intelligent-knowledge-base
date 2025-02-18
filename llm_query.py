@@ -119,14 +119,21 @@ class RAGSystem:
     def update(self, filename):
         """Update the index with the new documents"""
         import uuid
+
+        # load the new documents
         new_documents = SimpleDirectoryReader(input_files=[filename]).load_data()
+
+        # split to nodes
         new_nodes = Settings.text_splitter.get_nodes_from_documents(new_documents)
         for node in new_nodes:
             # Create a unique document ID for each node
             doc_id = str(uuid.uuid4()) # temporary fix, will think how to create the ID soon
+            
             # Convert the TextNode into a Document with required attributes
             new_doc = Document(text=node.text, doc_id=doc_id, metadata=node.metadata)
             self.index.insert(new_doc)
+        
+        # Persist the updated database
         self.index.storage_context.persist(self.DB_PATH)
 
 
