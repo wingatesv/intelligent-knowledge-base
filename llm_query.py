@@ -111,14 +111,29 @@ class RAGSystem:
             # Load documents via SimpleDirectoryReader
             documents = SimpleDirectoryReader("documents").load_data()
 
-            # load the documents as Vector Store Index
-            self.index = VectorStoreIndex.from_documents(documents, storage_context=storage_context, transformations=[text_splitter])
+            # === Use low-level parsing of documents instead of high-level ===
+            # 
+            # Use low-level parsing, because we want to manually get the node id
+            # 
+            # https://docs.llamaindex.ai/en/stable/module_guides/loading/documents_and_nodes/
+            # https://docs.llamaindex.ai/en/stable/understanding/loading/loading/#lower-level-transformation-api
+
+            # # load the documents as Vector Store Index
+            # self.index = VectorStoreIndex.from_documents(documents, storage_context=storage_context, transformations=[text_splitter])
+
+            # parse nodes
+            nodes = Settings.text_splitter.get_nodes_from_documents(documents)
+            # for node in nodes:
+            #     print('node filename:', node.metadata['file_name'])  
+            #     print('node id:', node.node_id)     
+            #     print('ref doc id:', node.ref_doc_id)    
+            # print(dir(node))       
+
+            # load the nodes as Vector Store Index
+            self.index = VectorStoreIndex(nodes, storage_context=storage_context)
+        
         # Persist the updated database
         self.index.storage_context.persist(self.DB_PATH)
-
-        for doc_id, node in self.index.docstore.docs.items():
-          print(doc_id, node)
-
 
 
     
