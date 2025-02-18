@@ -138,11 +138,17 @@ def delete_files(selected_files):
 
     return gr.FileExplorer(root_dir=chat_history_dir)
 
-def update_file_explorer():
+def update_file_explorer_1():
     """
     File explorer will not refresh automatically: https://github.com/gradio-app/gradio/issues/7788
     """
     return gr.FileExplorer(root_dir=internal_folder)
+
+def update_file_explorer_2():
+    """
+    File explorer will not refresh automatically: https://github.com/gradio-app/gradio/issues/7788
+    """
+    return gr.FileExplorer(root_dir=chat_history_dir)
 
 def load_existing_chat_sessions():
     """Returns a sorted list of chat session IDs from disk."""
@@ -154,7 +160,7 @@ def load_existing_chat_sessions():
 
 def load_chat_session(session_name):
     """Loads and formats chat history correctly for gr.Chatbot."""
-    session_path = os.path.join(chat_history_dir, session_name + ".json")
+    session_path = os.path.join(chat_history_dir, session_name)
     try:
         with open(session_path, "r", encoding="utf-8") as file:
             session_data = json.load(file)
@@ -168,7 +174,9 @@ def save_chat_session(chat_history):
     global current_session
     if not chat_history:
         return
-    session_path = os.path.join(chat_history_dir, current_session + ".json")
+    # Check if current_session already ends with ".json"; if not, append it.
+    filename = current_session if current_session.endswith(".json") else current_session + ".json"
+    session_path = os.path.join(chat_history_dir, filename)
     try:
         session_data = [{"sender": msg[0], "message": msg[1]} for msg in chat_history]
         with open(session_path, "w", encoding="utf-8") as file:
@@ -210,15 +218,18 @@ def new_chat_session(chat_history):
     if current_session not in existing_sessions:
         existing_sessions.insert(0, current_session)
     
-    # Update the dropdown to show the latest session id as the current selection
-    dropdown_update = gr.update(choices=existing_sessions, value=current_session)
+  
     
     # Clear the chat history for the new session
-    return [], dropdown_update
+    return [], gr.FileExplorer(root_dir=internal_folder)
 
-def save_on_exit(chat_history):
-    """Save chat session before UI exits."""
+def save_chat_and_update(chat_history):
+    """
+    Saves the current chat session with the current session id,
+    updates the chat history list, but keeps the chat interface unchanged.
+    """
     save_chat_session(chat_history)
+    return chat_history, gr.FileExplorer(root_dir=internal_folder)
 
 
 ### **Gradio UI Implementation**
@@ -230,18 +241,22 @@ with gr.Blocks() as demo:
                 upload_button = gr.File(file_count="multiple", label="Upload file")
                 delete_button = gr.Button("Delete")
 
-            file_explorer = gr.FileExplorer(root_dir=internal_folder, file_count="multiple", interactive=True, label='Uploaded files', every=1)
+            uploaded_file_list = gr.FileExplorer(root_dir=internal_folder, file_count="multiple", interactive=True, label='Uploaded files', every=1)
            
-            upload_button.upload(fn=upload_files, inputs=upload_button, outputs=file_explorer).then(fn=update_file_explorer, outputs=file_explorer)
-            delete_button.click(fn=delete_files, inputs=file_explorer, outputs=file_explorer).then(fn=update_file_explorer, outputs=file_explorer)
+            upload_button.upload(fn=upload_files, inputs=upload_button, outputs=uploaded_file_list).then(fn=update_file_explorer_1, outputs=uploaded_file_list)
+            delete_button.click(fn=delete_files, inputs=uploaded_file_list, outputs=uploaded_file_list).then(fn=update_file_explorer_1,  outputs=uploaded_file_list)
 
             gr.Markdown("## Chats")
             new_chat_button = gr.Button("New chat")
+            save_chat_button = gr.Button("Save Chat")
             # Initially load existing sessions from disk and include the current session id
-            initial_sessions = load_existing_chat_sessions()
-            if current_session not in initial_sessions:
-                initial_sessions.insert(0, current_session)
-            chat_history_list = gr.Dropdown(choices=initial_sessions, value=current_session, label="Current Chat", interactive=True)
+            # initial_sessions = load_existing_chat_sessions()
+            # if current_session not in initial_sessions:
+            #     initial_sessions.insert(0, current_session)
+            # chat_history_list = gr.Dropdown(choices=initial_sessions, value=current_session, label="Current Chat", interactive=True)
+            chat_history_list = gr.FileExplorer(root_dir=chat_history_dir, file_count="single", interactive=True, label='Chats', every=1)
+            
+            
 
         with gr.Column(scale=8):
             with gr.Row(equal_height=True):
@@ -256,9 +271,9 @@ with gr.Blocks() as demo:
                 send_button = gr.Button("Send", scale=0.05)
 
             send_button.click(fn=send_query, inputs=[user_input_box, chat_interface], outputs=[chat_interface, user_input_box])
-            new_chat_button.click(fn=new_chat_session, inputs=[chat_interface], outputs=[chat_interface, chat_history_list])
+            new_chat_button.click(fn=new_chat_session, inputs=[chat_interface], outputs=[chat_interface, chat_history_list]).then(fn=update_file_explorer_2, outputs=chat_history_list)
             chat_history_list.change(fn=save_and_load_chat_session, inputs=[chat_interface, chat_history_list], outputs=chat_interface)
             role_dropdown.change(fn=change_role, inputs=[role_dropdown, chat_interface], outputs=[role_status, upload_button, chat_interface, chat_history_list] )
-
+            save_chat_button.click(fn=save_chat_and_update, inputs=chat_interface, outputs=[chat_interface, chat_history_list]).then(fn=update_file_explorer_2, outputs=chat_history_list)
 
 demo.launch(share=True)
