@@ -115,6 +115,20 @@ class RAGSystem:
         # Persist the updated database
         self.index.storage_context.persist(self.DB_PATH)
 
+    
+
+    def update(self, filename):
+        import uuid
+        new_documents = SimpleDirectoryReader(input_files=[filename]).load_data()
+        new_nodes = Settings.text_splitter.get_nodes_from_documents(new_documents)
+        for node in new_nodes:
+            # Create a unique document ID for each node
+            doc_id = str(uuid.uuid4())
+            # Convert the TextNode into a Document with required attributes
+            new_doc = Document(text=node.text, doc_id=doc_id, metadata=node.metadata)
+            self.index.insert(new_doc)
+        self.index.storage_context.persist(self.DB_PATH)
+
 
     def hugging_face_query(self, prompt, role):
         """Query the preloaded RAG index instead of rebuilding it."""
