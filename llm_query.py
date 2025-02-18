@@ -113,9 +113,13 @@ class RAGSystem:
 
             # load the documents as Vector Store Index
             self.index = VectorStoreIndex.from_documents(documents, storage_context=storage_context, transformations=[text_splitter])
-            
         # Persist the updated database
         self.index.storage_context.persist(self.DB_PATH)
+
+        for doc_id, node in self.index.docstore.docs.items():
+          print(doc_id, node)
+
+
 
     
     def update(self, filename):
@@ -133,6 +137,8 @@ class RAGSystem:
         for node in new_nodes:
             # Create a unique document ID for each node
             doc_id = str(uuid.uuid4()) # temporary fix, will think how to create the ID soon
+            print('doc id:',doc_id)
+            print('node meta data:', node.metadata)
             
             # Convert the TextNode into a Document with required attributes
             new_doc = Document(text=node.text, doc_id=doc_id, metadata=node.metadata)
@@ -140,6 +146,32 @@ class RAGSystem:
         
         # Persist the updated database
         self.index.storage_context.persist(self.DB_PATH)
+
+    def delete(self, filename):
+      """
+      Delete all documents in the index that originated from the given filename.
+      All nodes corresponding to the document will be deleted using delete_ref_doc.
+      """
+      if self.index is None:
+          logger.error("Index has not been initialized.")
+          return
+
+      docs_to_delete = []
+      # Assuming self.index.docs is a list of Document objects. Adjust as needed.
+      try:
+          for doc in getattr(self.index, "docs", []):
+              if doc.metadata.get("file_name") == filename:
+                  docs_to_delete.append(doc.doc_id)
+          print('doc to delete: ',docs_to_delete)
+          for doc_id in docs_to_delete:
+              # Delete the document from the index and docstore.
+              print(doc_id)
+              self.index.delete_ref_doc(doc_id, delete_from_docstore=True)
+          # Persist the changes to the index
+          self.index.storage_context.persist(self.DB_PATH)
+          logger.info(f"Deleted documents from index for file: {filename}")
+      except Exception as e:
+          logger.error(f"Error deleting documents for file {filename}: {e}")
 
 
     def hugging_face_query(self, prompt, role):
