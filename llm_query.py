@@ -140,9 +140,7 @@ class RAGSystem:
                 self.file_nodes[file_name].append(node_id)           
 
             # load the nodes as Vector Store Index
-            self.index = VectorStoreIndex(nodes, storage_context=storage_context)
-
-        print(self.file_nodes)
+            self.index = VectorStoreIndex(nodes, storage_context=storage_context)        
         
         # Save the updated file_nodes
         with open(self.FILE_NODES_PATH, 'wb') as f:
