@@ -127,14 +127,10 @@ def delete_files(selected_files):
         selected_files = [selected_files]
     for file_name in selected_files:
         full_path = os.path.join(internal_folder, file_name)
-        try:
-            os.remove(full_path)
-            logging.info(f"Deleted file: {file_name}")
-            # Update RAG to remove the file's content from its index
-            rag.delete(full_path)
-        except Exception as e:
-            logging.error(f"Error deleting file {file_name}: {str(e)}")
-            return gr.FileExplorer(root_dir=chat_history_dir)
+        os.remove(full_path)
+        logging.info(f"Deleted file: {file_name}")
+        # Update RAG to remove the file's content from its index
+        rag.delete(full_path)
 
     return gr.FileExplorer(root_dir=chat_history_dir)
 
