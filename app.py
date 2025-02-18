@@ -102,24 +102,21 @@ def upload_files(files):
         return "No files uploaded."
     new_files = []
     for file_obj in files:
-        file_name = os.path.basename(file_obj.name)
-        dest_path = os.path.join(internal_folder, file_name)
+        filename = os.path.basename(file_obj.name)
+        dest_path = os.path.join(internal_folder, filename)
         shutil.copy(file_obj.name, dest_path)
-        new_files.append(file_name)
-    try:
-        # Reinitialize the RAG system after uploading new files
-        rag.initialize_rag(
-              api_token=api_token,
-              embedding_model=embedding_model,
-              llm_model=llm_model,
-              chunk_size=chunk_size,
-              chunk_overlap=chunk_overlap,
-              role=role_global
-          )
-        logging.info(f"Uploaded files: {', '.join(new_files)}. RAG system reinitialized.")
-    except Exception as e:
-        logging.error(f"Error reinitializing RAG system: {str(e)}")
-        return f"Error reinitializing RAG system: {str(e)}"
+        new_files.append(filename)
+        print(11111111111, filename)
+    for filename in new_files:
+        rag.update(os.path.join(internal_folder, filename))
+    # try:
+    #     # update rag with the new_files
+    #     for filename in new_files:
+    #         rag.update(os.path.join(internal_folder, filename))
+    #     logging.info(f"Uploaded files: {', '.join(new_files)}. RAG system reinitialized.")
+    # except Exception as e:
+    #     logging.error(f"Error reinitializing RAG system: {str(e)}")
+    #     return f"Error reinitializing RAG system: {str(e)}"
     return list_files_in_internal_folder()
 
 def load_existing_chat_sessions():
