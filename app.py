@@ -29,6 +29,7 @@ interface_mode = config.get("INTERFACE_MODE", "DARK").upper()
 
 # Setup folders
 internal_folder = config.get("DOC_DIR", "documents")
+
 internal_folder = os.path.join(os.getcwd(), internal_folder)
 os.makedirs(internal_folder, exist_ok=True)
 
@@ -96,28 +97,52 @@ def send_query(user_input, chat_history):
     chat_history[-1][1] = str(response)
     return chat_history, ""
 
+
 def upload_files(files):
     """Handle file uploads and reinitialize the RAG system."""
     if not files:
-        return "No files uploaded."
+        return gr.FileExplorer(root_dir=chat_history_dir)
     new_files = []
     for file_obj in files:
         filename = os.path.basename(file_obj.name)
         dest_path = os.path.join(internal_folder, filename)
         shutil.copy(file_obj.name, dest_path)
         new_files.append(filename)
-        print(11111111111, filename)
+        logging.info(f"Uploaded: {filename}")
     for filename in new_files:
         rag.update(os.path.join(internal_folder, filename))
-    # try:
-    #     # update rag with the new_files
-    #     for filename in new_files:
-    #         rag.update(os.path.join(internal_folder, filename))
-    #     logging.info(f"Uploaded files: {', '.join(new_files)}. RAG system reinitialized.")
-    # except Exception as e:
-    #     logging.error(f"Error reinitializing RAG system: {str(e)}")
-    #     return f"Error reinitializing RAG system: {str(e)}"
-    return list_files_in_internal_folder()
+
+
+    return gr.FileExplorer(root_dir=chat_history_dir)
+
+def delete_files(selected_files):
+    """
+    Handle deletion of selected files, update the RAG system and refresh the file explorer.
+    Assumes that RAGSystem has a 'delete' method to remove file content from its index.
+    """
+    if not selected_files:
+        return gr.FileExplorer(root_dir=chat_history_dir)
+    # Ensure a list if a single file is selected
+    if isinstance(selected_files, str):
+        selected_files = [selected_files]
+    for file_name in selected_files:
+        full_path = os.path.join(internal_folder, file_name)
+        try:
+            os.remove(full_path)
+            logging.info(f"Deleted file: {file_name}")
+            # Update RAG to remove the file's content from its index
+            rag.delete(full_path)
+        except Exception as e:
+            logging.error(f"Error deleting file {file_name}: {str(e)}")
+            return gr.FileExplorer(root_dir=chat_history_dir)
+
+    return gr.FileExplorer(root_dir=chat_history_dir)
+
+def update_file_explorer():
+    """
+    File explorer will not refresh automatically: https://github.com/gradio-app/gradio/issues/7788
+    """
+    return gr.FileExplorer(root_dir=internal_folder)
 
 def load_existing_chat_sessions():
     """Returns a sorted list of chat session IDs from disk."""
@@ -135,7 +160,7 @@ def load_chat_session(session_name):
             session_data = json.load(file)
         return [(entry["sender"], entry["message"]) for entry in session_data]
     except Exception as e:
-        logging.error(f"Error loading chat session {session_name}: {e}")
+        logging.info(f"Error loading chat session {session_name}: {e}")
         return []
 
 def save_chat_session(chat_history):
@@ -195,26 +220,23 @@ def save_on_exit(chat_history):
     """Save chat session before UI exits."""
     save_chat_session(chat_history)
 
-def list_files_in_internal_folder():
-    try:
-        files = os.listdir(internal_folder)
-        if not files:
-            return "No files uploaded."
-        return "\n".join(files)
-    except Exception as e:
-        return f"Error accessing internal folder: {str(e)}"
 
 ### **Gradio UI Implementation**
 with gr.Blocks() as demo:
     with gr.Row():
         with gr.Column(scale=2):
             gr.Markdown("## Documents")
-            upload_button = gr.File(file_count="multiple", label="Upload & View Documents")
-            upload_status = gr.Textbox(label="Uploaded Files", interactive=False, value=list_files_in_internal_folder())
-            upload_button.upload(fn=upload_files, inputs=upload_button, outputs=upload_status)
+            with gr.Row(equal_height=True):
+                upload_button = gr.File(file_count="multiple", label="Upload file")
+                delete_button = gr.Button("Delete")
+
+            file_explorer = gr.FileExplorer(root_dir=internal_folder, file_count="multiple", interactive=True, label='Uploaded files', every=1)
+           
+            upload_button.upload(fn=upload_files, inputs=upload_button, outputs=file_explorer).then(fn=update_file_explorer, outputs=file_explorer)
+            delete_button.click(fn=delete_files, inputs=file_explorer, outputs=file_explorer).then(fn=update_file_explorer, outputs=file_explorer)
 
             gr.Markdown("## Chats")
-            new_chat_button = gr.Button("New Chat")
+            new_chat_button = gr.Button("New chat")
             # Initially load existing sessions from disk and include the current session id
             initial_sessions = load_existing_chat_sessions()
             if current_session not in initial_sessions:
@@ -223,14 +245,14 @@ with gr.Blocks() as demo:
 
         with gr.Column(scale=8):
             with gr.Row(equal_height=True):
-                role_dropdown = gr.Dropdown(choices=["Teacher", "Student"], value="Student", label="Role", scale=0.2)
-                role_status = gr.Textbox(label="Role Status", interactive=False, scale=1)
+                role_dropdown = gr.Dropdown(choices=["Teacher", "Student"], value="Student", label="User role", scale=0.2)
+                role_status = gr.Textbox(label="Role status", interactive=False, scale=1)
                 
-                settings_button = gr.Button("⚙", scale=0.05)
+                # settings_button = gr.Button("⚙", scale=0.05)
 
             chat_interface = gr.Chatbot(label="Chat")
             with gr.Row(equal_height=True):
-                user_input_box = gr.Textbox(placeholder="Enter your query", label="Your Query")
+                user_input_box = gr.Textbox(placeholder="Enter your query", label="Your query")
                 send_button = gr.Button("Send", scale=0.05)
 
             send_button.click(fn=send_query, inputs=[user_input_box, chat_interface], outputs=[chat_interface, user_input_box])
