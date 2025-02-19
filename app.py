@@ -233,7 +233,7 @@ with gr.Blocks() as demo:
                 upload_button = gr.File(file_count="multiple", label="Upload file")
                 delete_button = gr.Button("Delete")
 
-            uploaded_file_list = gr.FileExplorer(root_dir=internal_folder, file_count="multiple", interactive=True, label='Uploaded files', every=1, ignore_glob='*.ipynb_checkpoints')
+            uploaded_file_list = gr.FileExplorer(root_dir=internal_folder, file_count="single", interactive=True, label='Uploaded files', every=1, ignore_glob='*.ipynb_checkpoints')
            
             upload_button.upload(fn=upload_files, inputs=upload_button, outputs=uploaded_file_list).then(fn=update_file_explorer_1, outputs=uploaded_file_list)
             delete_button.click(fn=delete_files, inputs=uploaded_file_list, outputs=uploaded_file_list).then(fn=update_file_explorer_1,  outputs=uploaded_file_list)
