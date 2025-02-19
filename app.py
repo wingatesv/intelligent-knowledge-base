@@ -49,29 +49,21 @@ def generate_session_id():
 current_session = None
 
 # Initialize RAG
-rag = RAGSystem()
-rag.initialize_rag(
+rag = RAGSystem(
     api_token=api_token,
     embedding_model=embedding_model,
     llm_model=llm_model,
     chunk_size=chunk_size,
-    chunk_overlap=chunk_overlap,
-    role=role_global
+    chunk_overlap=chunk_overlap,    
 )
+rag.initialize_rag(role=role_global)
 
 ### **Helper Functions**
 def change_role(role, chat_history):
     global role_global
     role_global = role
     try:
-        rag.initialize_rag(
-            api_token=api_token,
-            embedding_model=embedding_model,
-            llm_model=llm_model,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            role=role
-        )
+        rag.initialize_rag(role=role)
         msg = f"Role switched to: {role}. RAG reinitialized."
         logging.info(msg)
     except Exception as e:
@@ -92,7 +84,7 @@ def send_query(user_input, chat_history):
         return chat_history, ""
     chat_history = chat_history + [[user_input, ""]]
     try:
-        response = rag.chat(user_input, role_global)
+        response = rag.chat(user_input)
     except Exception as e:
         response = f"Error: {str(e)}"
     chat_history[-1][1] = str(response)
