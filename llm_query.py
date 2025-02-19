@@ -166,18 +166,12 @@ class RAGSystem:
 
         node_ids = []
         for node in new_nodes:
-            # Create a unique document ID for each node
-            doc_id = str(uuid.uuid4()) # temporary fix, will think how to create the ID soon                        
-            
-            # Convert the TextNode into a Document with required attributes
-            new_doc = Document(text=node.text, doc_id=doc_id, metadata=node.metadata)
-
-            # update index
-            self.index.insert(new_doc)
-
             # record node ids
             node_ids.append(node.node_id)
 
+        # update index        
+        self.index.insert_nodes(new_nodes)
+        
         # update file_nodes
         self.file_nodes[os.path.basename(filename)] = node_ids
         
