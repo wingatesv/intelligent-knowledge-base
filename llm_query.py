@@ -215,7 +215,7 @@ class RAGSystem:
         self.index.storage_context.persist(self.DB_PATH)
 
 
-    def hugging_face_query(self, prompt, role):
+    def chat(self, prompt, role):
         """Query the preloaded RAG index instead of rebuilding it."""
         if self.index is None:
             return "Error: Index has not been initialized. Call initialize_rag() first."
