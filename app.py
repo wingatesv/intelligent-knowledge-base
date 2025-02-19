@@ -168,12 +168,12 @@ class RAGChatApp:
         if chat_history:
             self.save_chat_session(chat_history)
         self.current_session = None
-        return [], gr.FileExplorer(root_dir=self.get_chat_history_dir())
+        return [], gr.FileExplorer(root_dir=self.internal_folder)
 
     def save_chat_and_update(self, chat_history):
         """Saves the current chat and returns the updated file explorer."""
         self.save_chat_session(chat_history)
-        return chat_history, gr.FileExplorer(root_dir=self.get_chat_history_dir())
+        return chat_history, gr.FileExplorer(root_dir=self.internal_folder)
 
     def launch(self):
         """Builds and launches the Gradio UI."""
@@ -247,7 +247,7 @@ class RAGChatApp:
                         fn=self.change_role,
                         inputs=[role_dropdown, chat_interface],
                         outputs=[role_status, upload_button, chat_interface, chat_history_list]
-                    )
+                    ).then(fn=self.update_file_explorer_2, outputs=chat_history_list)
                     save_chat_button.click(
                         fn=self.save_chat_and_update,
                         inputs=chat_interface,
