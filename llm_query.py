@@ -166,20 +166,14 @@ class RAGSystem:
 
         node_ids = []
         for node in new_nodes:
-            # Create a unique document ID for each node
-            doc_id = str(uuid.uuid4()) # temporary fix, will think how to create the ID soon                        
-            
-            # Convert the TextNode into a Document with required attributes
-            new_doc = Document(text=node.text, doc_id=doc_id, metadata=node.metadata)
-
-            # update index
-            self.index.insert(new_doc)
-
             # record node ids
             node_ids.append(node.node_id)
 
+        # update index        
+        self.index.insert_nodes(new_nodes)
+        
         # update file_nodes
-        self.file_nodes[filename] = node_ids
+        self.file_nodes[os.path.basename(filename)] = node_ids
         
         # Save the updated file_nodes
         with open(self.FILE_NODES_PATH, 'wb') as f:
@@ -203,8 +197,11 @@ class RAGSystem:
         print(self.file_nodes)
         print(delete_nodes)
 
-        # delete nodes
+        # delete nodes from index
         self.index.delete_nodes(node_ids=delete_nodes, delete_from_docstore=True)
+
+        # delete the nodes corresponding to this file(name)
+        del self.file_nodes[os.path.basename(filename)]
 
         # Save the updated file_nodes
         with open(self.FILE_NODES_PATH, 'wb') as f:
@@ -212,6 +209,15 @@ class RAGSystem:
 
         # Save (persist) the updated database
         self.index.storage_context.persist(self.DB_PATH)
+
+
+    def hugging_face_query(self, prompt, role):
+        """Query the preloaded RAG index instead of rebuilding it."""
+        if self.index is None:
+            return "Error: Index has not been initialized. Call initialize_rag() first."
+        query_engine = self.index.as_query_engine()
+        response = query_engine.query(prompt)
+        return response.response  # Ensure we return only the text response
 
     def generate_chat_title(self, chat_history):
       """
@@ -247,13 +253,3 @@ class RAGSystem:
       except Exception as e:
           logger.error(f"Error generating chat title: {e}")
           return "Untitled Chat"
-
-
-
-    def hugging_face_query(self, prompt, role):
-        """Query the preloaded RAG index instead of rebuilding it."""
-        if self.index is None:
-            return "Error: Index has not been initialized. Call initialize_rag() first."
-        query_engine = self.index.as_query_engine()
-        response = query_engine.query(prompt)
-        return response.response  # Ensure we return only the text response
