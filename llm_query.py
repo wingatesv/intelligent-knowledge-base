@@ -179,7 +179,7 @@ class RAGSystem:
             node_ids.append(node.node_id)
 
         # update file_nodes
-        self.file_nodes[filename] = node_ids
+        self.file_nodes[os.path.basename(filename)] = node_ids
         
         # Save the updated file_nodes
         with open(self.FILE_NODES_PATH, 'wb') as f:
