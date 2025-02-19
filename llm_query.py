@@ -24,6 +24,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class RAGSystem:
+    """
+    Useful links:
+    https://docs.llamaindex.ai/en/stable/api_reference/indices/#llama_index.core.indices.base.BaseIndex.delete_nodes
+    """
     # Constants
     COLLECTION_NAME = "doc"
     DB_PATH = "chroma_db"  # Path to store the ChromaDB database
