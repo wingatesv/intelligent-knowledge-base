@@ -92,7 +92,7 @@ def send_query(user_input, chat_history):
         return chat_history, ""
     chat_history = chat_history + [[user_input, ""]]
     try:
-        response = rag.hugging_face_query(user_input, role_global)
+        response = rag.chat(user_input, role_global)
     except Exception as e:
         response = f"Error: {str(e)}"
     chat_history[-1][1] = str(response)
