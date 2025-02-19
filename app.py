@@ -10,6 +10,17 @@ from llm_query import RAGSystem
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+#----------------------------------------------------------------------
+# IMPORTANT REMARKS on gradio file explorer
+#----------------------------------------------------------------------
+# File explorer will not refresh automatically: https://github.com/gradio-app/gradio/issues/7788
+# Hence, what we did is we purposely load the wrong file explorer first, 
+# then only we reload back the correct file explorer.
+# That is why you will notice that the we will load the wrong directory
+# for file explorer in each function, then only we use .then() to call
+# the correct file explorer using the correct directory
+
+
 class RAGChatApp:
     def __init__(self, config_path="config.yaml"):
         self.config = self.load_config(config_path)
