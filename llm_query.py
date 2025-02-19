@@ -219,6 +219,7 @@ class RAGSystem:
         response = query_engine.query(prompt)
         return response.response  # Ensure we return only the text response
 
+    
     def generate_chat_title(self, chat_history):
       """
       Generates a chat title based on the first item of the chat history using the LLM specified in Settings.llm.
