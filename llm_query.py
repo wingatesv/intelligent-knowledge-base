@@ -258,7 +258,12 @@ class RAGSystem:
 
     def reset_engine(self):
         """Reset the chat/query engine"""
-        self.engine.reset()    
+        if self.role.lower() == "student":
+            # query engine no need reset, because no chat history
+            pass
+        else:
+            # chat engine reset chat history
+            self.engine.reset()    
 
     
     def generate_chat_title(self, chat_history):
