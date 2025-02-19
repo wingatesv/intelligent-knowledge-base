@@ -246,8 +246,6 @@ class RAGSystem:
         f"Generate an extremely concise chat title (max 5 words) based on the following message:\n\n"
         f"\"{first_item}\""
       )
-
-      print(prompt)
       
       try:
           # Use the LLM from Settings to generate a title.
