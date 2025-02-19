@@ -11,7 +11,7 @@ import pickle
 # if use local LLM
 from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-
+from llama_index.core.prompts.base import PromptTemplate
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, StorageContext, load_index_from_storage, Document
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core.node_parser import SentenceSplitter
@@ -166,14 +166,20 @@ class RAGSystem:
 
         node_ids = []
         for node in new_nodes:
+            # Create a unique document ID for each node
+            doc_id = str(uuid.uuid4()) # temporary fix, will think how to create the ID soon                        
+            
+            # Convert the TextNode into a Document with required attributes
+            new_doc = Document(text=node.text, doc_id=doc_id, metadata=node.metadata)
+
+            # update index
+            self.index.insert(new_doc)
+
             # record node ids
             node_ids.append(node.node_id)
 
-        # update index        
-        self.index.insert_nodes(new_nodes)
-        
         # update file_nodes
-        self.file_nodes[os.path.basename(filename)] = node_ids
+        self.file_nodes[filename] = node_ids
         
         # Save the updated file_nodes
         with open(self.FILE_NODES_PATH, 'wb') as f:
@@ -197,11 +203,8 @@ class RAGSystem:
         print(self.file_nodes)
         print(delete_nodes)
 
-        # delete nodes from index
+        # delete nodes
         self.index.delete_nodes(node_ids=delete_nodes, delete_from_docstore=True)
-
-        # delete the nodes corresponding to this file(name)
-        del self.file_nodes[os.path.basename(filename)]
 
         # Save the updated file_nodes
         with open(self.FILE_NODES_PATH, 'wb') as f:
@@ -209,6 +212,42 @@ class RAGSystem:
 
         # Save (persist) the updated database
         self.index.storage_context.persist(self.DB_PATH)
+
+    def generate_chat_title(self, chat_history):
+      """
+      Generates a chat title based on the first item of the chat history using the LLM specified in Settings.llm.
+      
+      Args:
+          chat_history (list): A list of chat messages. Each element can be a tuple (sender, message)
+                              or a single string.
+      
+      Returns:
+          str: A generated chat title.
+      """
+      if not chat_history:
+          return "Untitled Chat"
+
+      # Extract the first item. If chat_history elements are tuples/lists, use the first element (assumed to be the sender/message).
+      first_item = chat_history[0][0] if isinstance(chat_history[0], (list, tuple)) else chat_history[0]
+
+      # Create a prompt that instructs the LLM to generate a concise title
+      prompt = (
+        f"Generate an extremely concise chat title (max 5 words) based on the following message:\n\n"
+        f"\"{first_item}\""
+      )
+
+      print(prompt)
+      
+      try:
+          # Use the LLM from Settings to generate a title.
+          # Assuming Settings.llm is callable (i.e. it has a __call__ method) that returns a string.
+          prompt_template = PromptTemplate(template=prompt)
+          title = Settings.llm.predict(prompt_template)
+          return title.strip()
+      except Exception as e:
+          logger.error(f"Error generating chat title: {e}")
+          return "Untitled Chat"
+
 
 
     def hugging_face_query(self, prompt, role):
