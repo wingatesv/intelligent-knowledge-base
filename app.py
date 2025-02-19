@@ -167,6 +167,7 @@ def save_chat_session(chat_history):
 
     if current_session is None:
       current_session = rag.generate_chat_title(chat_history)
+      current_session = current_session.replace('"', '')
     # Check if current_session already ends with ".json"; if not, append it.
     current_session = current_session if current_session.endswith(".json") else current_session + ".json"
     # current_session = title if title.endswith(".json") else title + ".json"
