@@ -200,7 +200,7 @@ class RAGSystem:
         self.save()
 
         # reset query/chat engine
-        self.reset()
+        self.reset_engine()
 
 
     def delete(self, filename):
@@ -227,7 +227,7 @@ class RAGSystem:
         self.save()
 
         # reset query/chat engine
-        self.reset()        
+        self.reset_engine()        
 
 
     def chat(self, prompt):
@@ -345,3 +345,5 @@ class RAGSystem:
 # This reference is just perfect
 # 
 # https://docs.llamaindex.ai/en/v0.10.34/examples/customization/streaming/chat_engine_condense_question_stream_response/
+
+
