@@ -242,8 +242,9 @@ class RAGSystem:
 
         elif self.role.lower() == "teacher":
             # chat engine will create chat stream
-            response = self.engine.stream_chat(prompt)
-            return response # different compared to query engine
+            response_stream  = self.engine.stream_chat(prompt)
+            response = response_stream.print_response_stream()            
+            return response_stream # WARNING: this code sequence seems weird, but it works like this
 
 
     def save(self):
