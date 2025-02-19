@@ -29,16 +29,25 @@ interface_mode = config.get("INTERFACE_MODE", "DARK").upper()
 
 # Setup folders
 internal_folder = config.get("DOC_DIR", "documents")
-
 internal_folder = os.path.join(os.getcwd(), internal_folder)
 os.makedirs(internal_folder, exist_ok=True)
 
-chat_history_dir = config.get("CHAT_DIR", "chat_histories")
-chat_history_dir = os.path.join(os.getcwd(), chat_history_dir)
-os.makedirs(chat_history_dir, exist_ok=True)
+# Instead of a single chat history folder, we define a base folder.
+base_chat_history_dir = config.get("CHAT_DIR", "chat_histories")
+base_chat_history_dir = os.path.join(os.getcwd(), base_chat_history_dir)
+os.makedirs(base_chat_history_dir, exist_ok=True)
 
 # Global session variables
-role_global = "Student"
+role_global = "Student"  # Default role
+
+def get_chat_history_dir():
+    """
+    Returns the directory for chat histories corresponding to the current role.
+    It ensures that the directory exists.
+    """
+    role_dir = os.path.join(base_chat_history_dir, role_global)
+    os.makedirs(role_dir, exist_ok=True)
+    return role_dir
 
 def generate_session_id():
     """Generates a new session id using the current timestamp."""
@@ -61,7 +70,14 @@ rag.initialize_rag(role=role_global)
 ### **Helper Functions**
 def change_role(role, chat_history):
     global role_global
+
+    # save current chat history before switching role
+    save_chat_session(chat_history)
+    chat_history = None
+
+    # switch role 
     role_global = role
+
     try:
         rag.initialize_rag(role=role)
         msg = f"Role switched to: {role}. RAG reinitialized."
@@ -73,10 +89,10 @@ def change_role(role, chat_history):
     # Update file uploader visibility/interactivity based on role
     file_update = gr.update(visible=(role != "Teacher"), interactive=(role != "Teacher"))
     
-    # Create a new chat session (clears the chat interface and updates the dropdown)
+    # Create a new chat session (clears the chat interface and updates the chat history explorer)
     new_chat, chat_dropdown_update = new_chat_session(chat_history)
     
-    # Return four outputs: role status message, file update, cleared chat interface, and updated chat history dropdown
+    # Return four outputs: role status message, file update, cleared chat interface, and updated chat history explorer
     return msg, file_update, new_chat, chat_dropdown_update
 
 def send_query(user_input, chat_history):
@@ -90,11 +106,10 @@ def send_query(user_input, chat_history):
     chat_history[-1][1] = str(response)
     return chat_history, ""
 
-
 def upload_files(files):
     """Handle file uploads and reinitialize the RAG system."""
     if not files:
-        return gr.FileExplorer(root_dir=chat_history_dir)
+        return gr.FileExplorer(root_dir=get_chat_history_dir())
     new_files = []
     for file_obj in files:
         filename = os.path.basename(file_obj.name)
@@ -104,9 +119,7 @@ def upload_files(files):
         logging.info(f"Uploaded: {filename}")
     for filename in new_files:
         rag.update(os.path.join(internal_folder, filename))
-
-
-    return gr.FileExplorer(root_dir=chat_history_dir)
+    return gr.FileExplorer(root_dir=get_chat_history_dir())
 
 def delete_files(selected_files):
     """
@@ -114,7 +127,7 @@ def delete_files(selected_files):
     Assumes that RAGSystem has a 'delete' method to remove file content from its index.
     """
     if not selected_files:
-        return gr.FileExplorer(root_dir=chat_history_dir)
+        return gr.FileExplorer(root_dir=get_chat_history_dir())
     # Ensure a list if a single file is selected
     if isinstance(selected_files, str):
         selected_files = [selected_files]
@@ -124,8 +137,7 @@ def delete_files(selected_files):
         logging.info(f"Deleted file: {file_name}")
         # Update RAG to remove the file's content from its index
         rag.delete(full_path)
-
-    return gr.FileExplorer(root_dir=chat_history_dir)
+    return gr.FileExplorer(root_dir=get_chat_history_dir())
 
 def update_file_explorer_1():
     """
@@ -135,14 +147,13 @@ def update_file_explorer_1():
 
 def update_file_explorer_2():
     """
-    File explorer will not refresh automatically: https://github.com/gradio-app/gradio/issues/7788
+    Refresh the chat history file explorer to display chats for the current role.
     """
-    return gr.FileExplorer(root_dir=chat_history_dir)
-
+    return gr.FileExplorer(root_dir=get_chat_history_dir())
 
 def load_chat_session(session_name):
     """Loads and formats chat history correctly for gr.Chatbot."""
-    session_path = os.path.join(chat_history_dir, session_name)
+    session_path = os.path.join(get_chat_history_dir(), session_name)
     try:
         with open(session_path, "r", encoding="utf-8") as file:
             session_data = json.load(file)
@@ -158,15 +169,13 @@ def save_chat_session(chat_history):
         return
 
     if current_session is None:
-      current_session = rag.generate_chat_title(chat_history)
-      current_session = current_session.replace('"', '')
-    # Check if current_session already ends with ".json"; if not, append it.
+        current_session = rag.generate_chat_title(chat_history)
+        current_session = current_session.replace('"', '')
+    # Ensure the session filename ends with ".json"
     current_session = current_session if current_session.endswith(".json") else current_session + ".json"
-    # current_session = title if title.endswith(".json") else title + ".json"
     print('Chat title: ', current_session)
 
-    session_path = os.path.join(chat_history_dir, current_session)
-
+    session_path = os.path.join(get_chat_history_dir(), current_session)
     
     try:
         session_data = [{"sender": msg[0], "message": msg[1]} for msg in chat_history]
@@ -185,7 +194,6 @@ def save_and_load_chat_session(chat_history, selected_session):
     if chat_history:
         save_chat_session(chat_history)
     if not selected_session:
-        # If no valid session is selected, do nothing.
         return chat_history
     current_session = selected_session
     return load_chat_session(selected_session)
@@ -193,7 +201,7 @@ def save_and_load_chat_session(chat_history, selected_session):
 def new_chat_session(chat_history):
     """
     Saves the current chat session (if nonempty), generates a new session id,
-    and updates the dropdown choices to include the new session id.
+    and updates the chat history explorer to display histories for the current role.
     """
     global current_session
 
@@ -201,12 +209,11 @@ def new_chat_session(chat_history):
     if chat_history:
         save_chat_session(chat_history)
     
-    # Generate a new session id
-    # current_session = generate_session_id()
+    # Reset session id for a new chat
     current_session = None
     
-    # Clear the chat history for the new session
-    return [], gr.FileExplorer(root_dir=internal_folder)
+    # Clear the chat history for the new session and update the chat explorer
+    return [], gr.FileExplorer(root_dir=get_chat_history_dir())
 
 def save_chat_and_update(chat_history):
     """
@@ -214,8 +221,7 @@ def save_chat_and_update(chat_history):
     updates the chat history list, but keeps the chat interface unchanged.
     """
     save_chat_session(chat_history)
-    return chat_history, gr.FileExplorer(root_dir=internal_folder)
-
+    return chat_history, gr.FileExplorer(root_dir=get_chat_history_dir())
 
 ### **Gradio UI Implementation**
 with gr.Blocks() as demo:
@@ -235,17 +241,14 @@ with gr.Blocks() as demo:
             new_chat_button = gr.Button("New chat")
             save_chat_button = gr.Button("Save Chat")
           
-            chat_history_list = gr.FileExplorer(root_dir=chat_history_dir, file_count="single", interactive=True, label='Chats', every=1, ignore_glob='*.ipynb_checkpoints')
+            # Initialize the chat history explorer for the current role.
+            chat_history_list = gr.FileExplorer(root_dir=get_chat_history_dir(), file_count="single", interactive=True, label='Chats', every=1, ignore_glob='*.ipynb_checkpoints')
             
-            
-
         with gr.Column(scale=8):
             with gr.Row(equal_height=True):
                 role_dropdown = gr.Dropdown(choices=["Teacher", "Student"], value="Student", label="User role", scale=0.2)
                 role_status = gr.Textbox(label="Role status", interactive=False, scale=1)
                 
-                # settings_button = gr.Button("⚙", scale=0.05)
-
             chat_interface = gr.Chatbot(label="Chat")
             with gr.Row(equal_height=True):
                 user_input_box = gr.Textbox(placeholder="Enter your query", label="Your query")
@@ -254,7 +257,7 @@ with gr.Blocks() as demo:
             send_button.click(fn=send_query, inputs=[user_input_box, chat_interface], outputs=[chat_interface, user_input_box])
             new_chat_button.click(fn=new_chat_session, inputs=[chat_interface], outputs=[chat_interface, chat_history_list]).then(fn=update_file_explorer_2, outputs=chat_history_list)
             chat_history_list.change(fn=save_and_load_chat_session, inputs=[chat_interface, chat_history_list], outputs=chat_interface)
-            role_dropdown.change(fn=change_role, inputs=[role_dropdown, chat_interface], outputs=[role_status, upload_button, chat_interface, chat_history_list] )
+            role_dropdown.change(fn=change_role, inputs=[role_dropdown, chat_interface], outputs=[role_status, upload_button, chat_interface, chat_history_list])
             save_chat_button.click(fn=save_chat_and_update, inputs=chat_interface, outputs=[chat_interface, chat_history_list]).then(fn=update_file_explorer_2, outputs=chat_history_list)
 
 demo.launch(share=True)
