@@ -45,7 +45,8 @@ def generate_session_id():
     return f"chat_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
 # On startup, generate a new session id
-current_session = generate_session_id()
+# current_session = generate_session_id()
+current_session = None
 
 # Initialize RAG
 rag = RAGSystem()
@@ -146,13 +147,6 @@ def update_file_explorer_2():
     """
     return gr.FileExplorer(root_dir=chat_history_dir)
 
-def load_existing_chat_sessions():
-    """Returns a sorted list of chat session IDs from disk."""
-    if not os.path.exists(chat_history_dir):
-        return []
-    session_files = sorted(os.listdir(chat_history_dir))
-    sessions = [os.path.splitext(session)[0] for session in session_files]
-    return sessions
 
 def load_chat_session(session_name):
     """Loads and formats chat history correctly for gr.Chatbot."""
@@ -170,9 +164,17 @@ def save_chat_session(chat_history):
     global current_session
     if not chat_history:
         return
+
+    if current_session is None:
+      current_session = rag.generate_chat_title(chat_history)
     # Check if current_session already ends with ".json"; if not, append it.
-    filename = current_session if current_session.endswith(".json") else current_session + ".json"
-    session_path = os.path.join(chat_history_dir, filename)
+    current_session = current_session if current_session.endswith(".json") else current_session + ".json"
+    # current_session = title if title.endswith(".json") else title + ".json"
+    print('Chat title: ', current_session)
+
+    session_path = os.path.join(chat_history_dir, current_session)
+
+    
     try:
         session_data = [{"sender": msg[0], "message": msg[1]} for msg in chat_history]
         with open(session_path, "w", encoding="utf-8") as file:
@@ -207,15 +209,8 @@ def new_chat_session(chat_history):
         save_chat_session(chat_history)
     
     # Generate a new session id
-    current_session = generate_session_id()
-
-    # Load existing sessions from disk
-    existing_sessions = load_existing_chat_sessions()
-    # Add the new session id if not already present
-    if current_session not in existing_sessions:
-        existing_sessions.insert(0, current_session)
-    
-  
+    # current_session = generate_session_id()
+    current_session = None
     
     # Clear the chat history for the new session
     return [], gr.FileExplorer(root_dir=internal_folder)
@@ -238,7 +233,7 @@ with gr.Blocks() as demo:
                 upload_button = gr.File(file_count="multiple", label="Upload file")
                 delete_button = gr.Button("Delete")
 
-            uploaded_file_list = gr.FileExplorer(root_dir=internal_folder, file_count="multiple", interactive=True, label='Uploaded files', every=1)
+            uploaded_file_list = gr.FileExplorer(root_dir=internal_folder, file_count="multiple", interactive=True, label='Uploaded files', every=1, ignore_glob='*.ipynb_checkpoints')
            
             upload_button.upload(fn=upload_files, inputs=upload_button, outputs=uploaded_file_list).then(fn=update_file_explorer_1, outputs=uploaded_file_list)
             delete_button.click(fn=delete_files, inputs=uploaded_file_list, outputs=uploaded_file_list).then(fn=update_file_explorer_1,  outputs=uploaded_file_list)
@@ -246,12 +241,8 @@ with gr.Blocks() as demo:
             gr.Markdown("## Chats")
             new_chat_button = gr.Button("New chat")
             save_chat_button = gr.Button("Save Chat")
-            # Initially load existing sessions from disk and include the current session id
-            # initial_sessions = load_existing_chat_sessions()
-            # if current_session not in initial_sessions:
-            #     initial_sessions.insert(0, current_session)
-            # chat_history_list = gr.Dropdown(choices=initial_sessions, value=current_session, label="Current Chat", interactive=True)
-            chat_history_list = gr.FileExplorer(root_dir=chat_history_dir, file_count="single", interactive=True, label='Chats', every=1)
+          
+            chat_history_list = gr.FileExplorer(root_dir=chat_history_dir, file_count="single", interactive=True, label='Chats', every=1, ignore_glob='*.ipynb_checkpoints')
             
             
 
