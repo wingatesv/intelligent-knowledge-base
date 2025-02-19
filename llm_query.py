@@ -203,8 +203,11 @@ class RAGSystem:
         print(self.file_nodes)
         print(delete_nodes)
 
-        # delete nodes
+        # delete nodes from index
         self.index.delete_nodes(node_ids=delete_nodes, delete_from_docstore=True)
+
+        # delete the nodes corresponding to this file(name)
+        del self.file_nodes[os.path.basename(filename)]
 
         # Save the updated file_nodes
         with open(self.FILE_NODES_PATH, 'wb') as f:
