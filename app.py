@@ -41,7 +41,7 @@ class RAGChatApp:
         os.makedirs(self.base_chat_history_dir, exist_ok=True)
 
         # State variables
-        self.role = "Teacher"  # default role
+        self.role = "Student"  # default role
         self.current_session = None
 
         # Initialize RAG system
@@ -182,7 +182,8 @@ class RAGChatApp:
         self.current_session = None
         new_chat = []
         if self.role.lower() == "teacher":
-            new_chat.append(["System", self.rag.generate_teacher_question()])
+            new_chat.append(["Let's dive into the documents. You will generate \
+            questions, and I will answer", self.rag.generate_teacher_question()])
         return new_chat, gr.FileExplorer(root_dir=self.internal_folder)
 
     def save_chat_and_update(self, chat_history):
@@ -234,7 +235,7 @@ class RAGChatApp:
                     with gr.Row(equal_height=True):
                         role_dropdown = gr.Dropdown(
                             choices=["Teacher", "Student"],
-                            value="Teacher",
+                            value="Student",
                             label="User role",
                             scale=0.2
                         )
