@@ -1,5 +1,8 @@
+# import nest_asyncio
+# nest_asyncio.apply()
+
 import json
-import os
+import os, sys
 import logging
 from collections import defaultdict
 import pickle
@@ -15,6 +18,7 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 # remaining llama index functions
 from llama_index.core.prompts.base import PromptTemplate
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, StorageContext, load_index_from_storage, Document
+from llama_index.core import SummaryIndex
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core.node_parser import SentenceSplitter
 import chromadb
@@ -100,7 +104,7 @@ class RAGSystem:
         """
 
         #----------------------------------------------------------------------
-        # Create/Load Index
+        # Create/Load VectorStoreIndex
         #----------------------------------------------------------------------
         # Check if the index exists (check before init the Chroma database)
         index_exists = os.path.lexists(self.DB_PATH) and os.path.isdir(self.DB_PATH) and os.listdir(self.DB_PATH)
@@ -114,7 +118,7 @@ class RAGSystem:
         # Set up the vector store
         self.vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
 
-        # (Remark 1): Create/Load index
+        # (Remark 1): Create/Load VectorStoreIndex
         if index_exists:
             # load existing index
             logger.info("Loading existing index...")
@@ -172,8 +176,9 @@ class RAGSystem:
             # Create query engine
             self.engine = self.index.as_query_engine()        
         elif self.role.lower() == "teacher":
-            # (Remark 5): Create chat engine
-            self.engine = self.index.as_chat_engine(chat_mode="condense_question", streaming=False) 
+            # (Remark 8): Extract nodes from VectorStoreIndex to create SummaryIndex
+            self.nodes = self.index.storage_context.vector_store._get(limit=sys.maxsize, where={}).nodes
+            self.nodes_batch_size = 5
 
 
     
@@ -241,10 +246,7 @@ class RAGSystem:
             return response.response  # Ensure we return only the text response
 
         elif self.role.lower() == "teacher":
-            # chat engine will create chat stream
-            response_stream  = self.engine.stream_chat(prompt)
-            response = response_stream.print_response_stream()            
-            return response_stream # WARNING: this code sequence seems weird, but it works like this
+            return self.generate_teacher_question()
 
 
     def save(self):
@@ -265,6 +267,30 @@ class RAGSystem:
         else:
             # chat engine reset chat history
             self.engine.reset()    
+
+
+    def generate_teacher_question(self):
+        # select first N nodes
+        nodes = self.nodes[:self.nodes_batch_size]
+
+        # remove the selected nodes
+        self.nodes = self.nodes[self.nodes_batch_size:]
+
+        # create summary index engine
+        summary_index = SummaryIndex(nodes)
+
+        summary_query_engine = summary_index.as_query_engine(
+            response_mode="tree_summarize",
+            use_async=False,
+        )  
+
+        # generate question
+        prompt = "Read through the given document and provide 2 possible technical concerns that require further clarification."
+        response = summary_query_engine.query(prompt)        
+        question = str(response)
+
+        return question              
+
 
     
     def generate_chat_title(self, chat_history):
@@ -344,7 +370,7 @@ class RAGSystem:
 
 
 #----------------------------------------------------------------------
-# Remark 5: Chat engine
+# Remark 5: Chat engine (not used in current version)
 #----------------------------------------------------------------------
 # 
 # Some of the tutorials for chat engine is either too hard or too simple (lacks info)
@@ -353,3 +379,28 @@ class RAGSystem:
 # https://docs.llamaindex.ai/en/v0.10.34/examples/customization/streaming/chat_engine_condense_question_stream_response/
 
 
+#----------------------------------------------------------------------
+# Remark 6: SummaryIndex example
+#----------------------------------------------------------------------
+# 
+# Example from Medium "Document Summarizer with LlamaIndex and Llama-3"
+# 
+# https://medium.com/@sid23/document-summarizer-with-llamaindex-and-llama-3-ce835282b9c2#:~:text=In%20this%20article%2C%20we%E2%80%99ll%20explore%20how%20to%20create,streamlined%20solution%20for%20extracting%20summaries%20from%20complex%20texts.
+
+
+#----------------------------------------------------------------------
+# Remark 7: Obtain nodes from VectorStoreIndex -> docstore (not used in current version)
+#----------------------------------------------------------------------
+# 
+# Obtain nodes from VectorStoreIndex
+# 
+# https://github.com/run-llama/llama_index/discussions/8930
+
+
+#----------------------------------------------------------------------
+# Remark 8: Obtain nodes from VectorStoreIndex -> Chroma db
+#----------------------------------------------------------------------
+# 
+# Obtain nodes from VectorStoreIndex
+# 
+# https://github.com/run-llama/llama_index/issues/13168#issuecomment-2186851520
