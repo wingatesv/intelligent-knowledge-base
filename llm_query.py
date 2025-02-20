@@ -308,7 +308,10 @@ class RAGSystem:
             return "Untitled Chat"
 
         # Extract the first item. If chat_history elements are tuples/lists, use the first element (assumed to be the sender/message).
-        first_item = chat_history[0][0] if isinstance(chat_history[0], (list, tuple)) else chat_history[0]
+        if self.role.lower() == "student":
+            first_item = chat_history[0][0] if isinstance(chat_history[0], (list, tuple)) else chat_history[0]
+        elif self.role.lower() == "teacher":
+            first_item = chat_history[1][0] if isinstance(chat_history[0], (list, tuple)) else chat_history[1]
 
         # Create a prompt that instructs the LLM to generate a concise title
         prompt = (
