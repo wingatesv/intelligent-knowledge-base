@@ -180,7 +180,10 @@ class RAGChatApp:
         if chat_history:
             self.save_chat_session(chat_history)
         self.current_session = None
-        return [], gr.FileExplorer(root_dir=self.internal_folder)
+        new_chat = []
+        if self.role.lower() == "teacher":
+            new_chat.append(["System", self.rag.generate_teacher_question()])
+        return new_chat, gr.FileExplorer(root_dir=self.internal_folder)
 
     def save_chat_and_update(self, chat_history):
         """Saves the current chat and returns the updated file explorer."""
