@@ -41,7 +41,7 @@ class RAGChatApp:
         os.makedirs(self.base_chat_history_dir, exist_ok=True)
 
         # State variables
-        self.role = "Student"  # default role
+        self.role = "Teacher"  # default role
         self.current_session = None
 
         # Initialize RAG system
@@ -84,9 +84,10 @@ class RAGChatApp:
         except Exception as e:
             msg = f"Error reinitializing RAG: {str(e)}"
             logging.error(msg)
-        file_update = gr.update(visible=(role != "Teacher"), interactive=(role != "Teacher"))
+        file_update = gr.update(visible=(role != "Student"), interactive=(role != "Student"))
+        delete_update = gr.update(visible=(role != "Student"), interactive=(role != "Student"))
         new_chat, chat_dropdown_update = self.new_chat_session(chat_history)
-        return msg, file_update, new_chat, chat_dropdown_update
+        return msg, file_update, delete_update, new_chat, chat_dropdown_update
 
     def send_query(self, user_input, chat_history):
         """Appends the user's query to the chat history and obtains a response via RAG."""
@@ -230,7 +231,7 @@ class RAGChatApp:
                     with gr.Row(equal_height=True):
                         role_dropdown = gr.Dropdown(
                             choices=["Teacher", "Student"],
-                            value="Student",
+                            value="Teacher",
                             label="User role",
                             scale=0.2
                         )
@@ -257,7 +258,7 @@ class RAGChatApp:
                     role_dropdown.change(
                         fn=self.change_role,
                         inputs=[role_dropdown, chat_interface],
-                        outputs=[role_status, upload_button, chat_interface, chat_history_list]
+                        outputs=[role_status, upload_button, delete_button, chat_interface, chat_history_list]
                     ).then(fn=self.update_file_explorer_2, outputs=chat_history_list)
                     save_chat_button.click(
                         fn=self.save_chat_and_update,
