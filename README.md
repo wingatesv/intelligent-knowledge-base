@@ -1,8 +1,8 @@
-# simpleRAG
+# intelligent-knowledge-base
 
 ```bash
-git clone https://github.com/simpleGenAI/simpleRAG.git
-cd simpleRAG
+git clone https://github.com/wingatesv/intelligent-knowledge-base.git
+cd intelligent-knowledge-base
 ```
 
 ```bash
