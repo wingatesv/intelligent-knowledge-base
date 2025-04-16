@@ -3,9 +3,9 @@ import os, sys
 import logging
 # from collections import defaultdict
 # import pickle
+import psycopg2
+from sqlalchemy import make_url
 
-
-# if use local LLM
 from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
@@ -24,10 +24,12 @@ logger = logging.getLogger(__name__)
 
 class RAGSystem:
     # Constants
-    COLLECTION_NAME = "doc"
-    DB_PATH = "chroma_db"  # Path to store the ChromaDB database
-    CHAT_HISTORY_DIR = "chat_histories"
-    FILE_NODES_PATH = "file_nodes.pkl"
+    # COLLECTION_NAME = "doc"
+    # DB_PATH = "chroma_db"  # Path to store the ChromaDB database
+    # CHAT_HISTORY_DIR = "chat_histories"
+    # FILE_NODES_PATH = "file_nodes.pkl"
+    DB_NAME = "vector_db"
+    CONNECTION_STRING = "postgresql://postgres:password@localhost:5432"
 
 
     def __init__(self, api_token, embedding_model, llm_model, chunk_size, chunk_overlap):
@@ -48,7 +50,7 @@ class RAGSystem:
         # Global variables for the RAGSystem
         #----------------------------------------------------------------------
         # Global variables for database and query/chat engine
-        self.chroma_client = None
+        # self.chroma_client = None
         self.vector_store = None
         self.index = None
         self.engine = None        
@@ -84,94 +86,130 @@ class RAGSystem:
         Settings.chunk_size = chunk_size
         Settings.text_splitter = text_splitter    
 
-
-    def initialize_rag(self, role):
-        """
-        Initializes a RAG database (ChromaDB) system based on role
+    def create_database(self):
+        conn = psycopg2.connect(CONNECTION_STRING)
+        conn.autocommit = True
         
-        Args:
-            role (str): The role or persona that the RAG system should assume when generating responses.
+        with conn.cursor() as c:
+            c.execute(f"DROP DATABASE IF EXISTS {DB_NAME}")
+            c.execute(f"CREATE DATABASE {DB_NAME}")
 
-        Returns:
-            None or an initialized RAG system object (depending on the implementation).            
-        """
+    def initialize_rag(self):
+        # Create VectorStore
+        url = make_url(CONNECTION_STRING)
+        vector_store = PGVectorStore.from_params(
+            database=db_name,
+            host=url.host,
+            password=url.password,
+            port=url.port,
+            user=url.username,
+            table_name="paul_graham_essay",
+            embed_dim=384,  # openai embedding dimension
+            hnsw_kwargs={
+                "hnsw_m": 16,
+                "hnsw_ef_construction": 64,
+                "hnsw_ef_search": 40,
+                "hnsw_dist_method": "vector_cosine_ops",
+            },
+        )
 
-        #----------------------------------------------------------------------
-        # Create/Load VectorStoreIndex
-        #----------------------------------------------------------------------
-        # Check if the index exists (check before init the Chroma database)
-        index_exists = os.path.lexists(self.DB_PATH) and os.path.isdir(self.DB_PATH) and os.listdir(self.DB_PATH)
+        # Create StorageContext
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)    
+
+        # Load data
+        documents = SimpleDirectoryReader("data").load_data()
         
-        # Initialize ChromaDB client
-        self.chroma_client = chromadb.PersistentClient(self.DB_PATH)  # Persistent storage
+        # Create Index
+        index = VectorStoreIndex.from_documents(documents, storage_context=storage_context, show_progress=True)
 
-        # Create/retrieve the collection
-        chroma_collection = self.chroma_client.get_or_create_collection(name=self.COLLECTION_NAME)
 
-        # Set up the vector store
-        self.vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+    # def initialize_rag(self, role):
+    #     """
+    #     Initializes a RAG database (ChromaDB) system based on role
+        
+    #     Args:
+    #         role (str): The role or persona that the RAG system should assume when generating responses.
 
-        # (Remark 1): Create/Load VectorStoreIndex
-        if index_exists:
-            # load existing index
-            logger.info("Loading existing index...")
+    #     Returns:
+    #         None or an initialized RAG system object (depending on the implementation).            
+    #     """
+
+    #     #----------------------------------------------------------------------
+    #     # Create/Load VectorStoreIndex
+    #     #----------------------------------------------------------------------
+    #     # Check if the index exists (check before init the Chroma database)
+    #     index_exists = os.path.lexists(self.DB_PATH) and os.path.isdir(self.DB_PATH) and os.listdir(self.DB_PATH)
+        
+    #     # Initialize ChromaDB client
+    #     self.chroma_client = chromadb.PersistentClient(self.DB_PATH)  # Persistent storage
+
+    #     # Create/retrieve the collection
+    #     chroma_collection = self.chroma_client.get_or_create_collection(name=self.COLLECTION_NAME)
+
+    #     # Set up the vector store
+    #     self.vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+
+    #     # (Remark 1): Create/Load VectorStoreIndex
+    #     if index_exists:
+    #         # load existing index
+    #         logger.info("Loading existing index...")
                         
-            # Create a StorageContext
-            storage_context = StorageContext.from_defaults(vector_store=self.vector_store, persist_dir=self.DB_PATH)    
+    #         # Create a StorageContext
+    #         storage_context = StorageContext.from_defaults(vector_store=self.vector_store, persist_dir=self.DB_PATH)    
 
-            # load the existing index from storage
-            self.index = load_index_from_storage(storage_context)  # Now safe to call
+    #         # load the existing index from storage
+    #         self.index = load_index_from_storage(storage_context)  # Now safe to call
 
-            # load the existing file and nodes pair dictionary
-            with open(self.FILE_NODES_PATH, 'rb') as f:
-                self.file_nodes = pickle.load(f)            
+    #         # load the existing file and nodes pair dictionary
+    #         with open(self.FILE_NODES_PATH, 'rb') as f:
+    #             self.file_nodes = pickle.load(f)            
 
-        else:
-            # create a new index
-            logger.info("Creating a new index...")
+    #     else:
+    #         # create a new index
+    #         logger.info("Creating a new index...")
 
-            # Create a StorageContext
-            storage_context = StorageContext.from_defaults(vector_store=self.vector_store)    
+    #         # Create a StorageContext
+    #         storage_context = StorageContext.from_defaults(vector_store=self.vector_store)    
 
-            # Load documents via SimpleDirectoryReader
-            documents = SimpleDirectoryReader("documents").load_data()
+    #         # Load documents via SimpleDirectoryReader
+    #         documents = SimpleDirectoryReader("documents").load_data()
 
-            # (Remark 2): We avoid initializing index using the high-level function to allow customization
-            # self.index = VectorStoreIndex.from_documents(documents, storage_context=storage_context, transformations=[text_splitter])
+    #         # (Remark 2): We avoid initializing index using the high-level function to allow customization
+    #         # self.index = VectorStoreIndex.from_documents(documents, storage_context=storage_context, transformations=[text_splitter])
 
-            # parse nodes
-            nodes = Settings.text_splitter.get_nodes_from_documents(documents)
+    #         # parse nodes
+    #         nodes = Settings.text_splitter.get_nodes_from_documents(documents)
 
-            # get file and nodes
-            self.file_nodes = defaultdict(list)
-            for node in nodes:
-                file_name = node.metadata['file_name']
-                node_id = node.node_id      
-                ref_doc_id = node.ref_doc_id          
-                self.file_nodes[file_name].append(node_id)           
+    #         # get file and nodes
+    #         self.file_nodes = defaultdict(list)
+    #         for node in nodes:
+    #             file_name = node.metadata['file_name']
+    #             node_id = node.node_id      
+    #             ref_doc_id = node.ref_doc_id          
+    #             self.file_nodes[file_name].append(node_id)           
 
-            # load the nodes as Vector Store Index
-            self.index = VectorStoreIndex(nodes, storage_context=storage_context)        
+    #         # load the nodes as Vector Store Index
+    #         self.index = VectorStoreIndex(nodes, storage_context=storage_context)        
         
         
-        # Save the database and file_nodes
-        self.save()
+    #     # Save the database and file_nodes
+    #     self.save()
 
 
-        #----------------------------------------------------------------------
-        # Create the corresponding chat/query engine
-        #----------------------------------------------------------------------                
-        # set role
-        self.role = role    
+    #     #----------------------------------------------------------------------
+    #     # Create the corresponding chat/query engine
+    #     #----------------------------------------------------------------------                
+    #     # set role
+    #     self.role = role    
 
-        # Create engine        
-        if self.role.lower() == "student":
-            # Create query engine
-            self.engine = self.index.as_query_engine()        
-        elif self.role.lower() == "teacher":
-            # (Remark 8): Extract nodes from VectorStoreIndex to create SummaryIndex
-            self.nodes = self.index.storage_context.vector_store._get(limit=sys.maxsize, where={}).nodes
-            self.nodes_batch_size = 5
+    #     # Create engine        
+    #     if self.role.lower() == "student":
+    #         # Create query engine
+    #         self.engine = self.index.as_query_engine()        
+    #     elif self.role.lower() == "teacher":
+    #         # (Remark 8): Extract nodes from VectorStoreIndex to create SummaryIndex
+    #         self.nodes = self.index.storage_context.vector_store._get(limit=sys.maxsize, where={}).nodes
+    #         self.nodes_batch_size = 5
 
 
     
