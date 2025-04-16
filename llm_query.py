@@ -1,29 +1,22 @@
-# import nest_asyncio
-# nest_asyncio.apply()
-
 import json
 import os, sys
 import logging
-from collections import defaultdict
-import pickle
+# from collections import defaultdict
+# import pickle
 
-# if use huggingface API
-from llama_index.llms.huggingface_api import HuggingFaceInferenceAPI
-from llama_index.embeddings.huggingface_api import HuggingFaceInferenceAPIEmbedding
 
 # if use local LLM
 from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 # remaining llama index functions
-from llama_index.core.prompts.base import PromptTemplate
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, StorageContext, load_index_from_storage, Document
-from llama_index.core import SummaryIndex
-from llama_index.vector_stores.chroma import ChromaVectorStore
+# from llama_index.core.prompts.base import PromptTemplate
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings, StorageContext, 
+# from llama_index.core import load_index_from_storage, Document, SummaryIndex
 from llama_index.core.node_parser import SentenceSplitter
-import chromadb
+from llama_index.vector_stores.postgres import PGVectorStore
 
-import uuid
+# import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
