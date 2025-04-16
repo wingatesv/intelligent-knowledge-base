@@ -1,4 +1,6 @@
 gradio
+psycopg2
+sqlalchemy
 llama-index
 llama-index-embeddings-huggingface
 llama-index-llms-ollama
