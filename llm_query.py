@@ -4,6 +4,7 @@ import logging
 # from collections import defaultdict
 # import pickle
 import psycopg2
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from sqlalchemy import make_url
 
 from llama_index.llms.ollama import Ollama
@@ -28,8 +29,6 @@ class RAGSystem:
     # DB_PATH = "chroma_db"  # Path to store the ChromaDB database
     # CHAT_HISTORY_DIR = "chat_histories"
     # FILE_NODES_PATH = "file_nodes.pkl"
-    DB_NAME = "vector_db"
-    CONNECTION_STRING = "postgresql://postgres:password@localhost:5432"
 
 
     def __init__(self, api_token, embedding_model, llm_model, chunk_size, chunk_overlap):
@@ -53,7 +52,10 @@ class RAGSystem:
         # self.chroma_client = None
         self.vector_store = None
         self.index = None
-        self.engine = None        
+        self.engine = None
+
+        self.connection_string = "postgresql://postgres:password@localhost:5432"
+        self.db_name = "vector_db"
 
 
         #----------------------------------------------------------------------
@@ -87,17 +89,30 @@ class RAGSystem:
         Settings.text_splitter = text_splitter    
 
     def create_database(self):
-        conn = psycopg2.connect(CONNECTION_STRING)
-        conn.autocommit = True
+        conn = psycopg2.connect(self.connection_string)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT) # Safer to use than conn.autocommit = True
+        # conn.autocommit = True
         
-        with conn.cursor() as c:
-            c.execute(f"DROP DATABASE IF EXISTS {DB_NAME}")
-            c.execute(f"CREATE DATABASE {DB_NAME}")
+        try:
+            with conn.cursor() as c:
+                # Check if the database already exists
+                c.execute("SELECT 1 FROM pg_database WHERE datname = %s;", (self.db_name,))
+                exists = c.fetchone()
+
+                if exists:
+                    logger.info(f"Database '{self.db_name}' already exists. Skipping creation.")
+                else:
+                    c.execute(f"CREATE DATABASE {self.db_name}")
+                    logger.info(f"Database '{self.db_name}' created successfully.")
+        finally:
+            conn.close()
 
     def initialize_rag(self):
+        # Create database
+        self.create_database()
         # Create VectorStore
         url = make_url(CONNECTION_STRING)
-        vector_store = PGVectorStore.from_params(
+        self.vector_store = PGVectorStore.from_params(
             database=db_name,
             host=url.host,
             password=url.password,
@@ -114,13 +129,16 @@ class RAGSystem:
         )
 
         # Create StorageContext
-        storage_context = StorageContext.from_defaults(vector_store=vector_store)    
+        storage_context = StorageContext.from_defaults(vector_store=self.vector_store)    
 
         # Load data
         documents = SimpleDirectoryReader("data").load_data()
         
         # Create Index
-        index = VectorStoreIndex.from_documents(documents, storage_context=storage_context, show_progress=True)
+        self.index = VectorStoreIndex.from_documents(documents, storage_context=storage_context, show_progress=True)
+
+        # Create Query Engine
+        self.engine = self.index.as_query_engine()
 
 
     # def initialize_rag(self, role):
