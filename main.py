@@ -31,6 +31,10 @@ class KnowledgeBaseAgent:
         self.llm_model = self.config.get("LLM_MODEL", "mistral")
         self.chunk_size = self.config.get("CHUNK_SIZE", 512)
         self.chunk_overlap = self.config.get("CHUNK_OVERLAP", 20)
+        self.connection_string = self.config.get("CONNECTION_STRING", "postgresql://postgres:password@localhost:5432/postgres")
+        self.db_name = self.config.get("DB_NAME", "vector_db")
+        self.table_name = self.config.get("TABLE_NAME", "knowledge_base")
+        self.pickle_file_path = self.config.get("PICKLE_FILE_PATH", "file_nodes.pkl")
 
         # Folders
         self.internal_folder = Path(self.config.get("DOC_DIR", "data")).absolute()
@@ -47,6 +51,9 @@ class KnowledgeBaseAgent:
             llm_model=self.llm_model,
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
+            connection_string = self.connection_string,
+            db_name = self.db_name,
+            pickle_file_path = self.pickle_file_path
         )
         self.rag_system.initialize_rag(self.internal_folder)
 
