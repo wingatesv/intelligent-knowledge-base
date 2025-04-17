@@ -29,6 +29,10 @@ class RAGSystem:
         self,
         embedding_model: str,
         llm_model: str,
+        connection_string: str,
+        db_name: str,
+        table_name: str,
+        pickle_file_path: str,
         chunk_size: int = 1024,
         chunk_overlap: int = 128,
     ):
@@ -36,10 +40,10 @@ class RAGSystem:
         Configure LlamaIndex (LLM, embeddings, chunking) but defer index build to initialize_rag().
         """
         # Database connection defaults (must include default DB)
-        self.connection_string = "postgresql://postgres:password@localhost:5432/postgres"
-        self.db_name = "vector_db"
-        self.table_name = "knowledge_base"
-        self.pickle_file_path = "file_nodes.pkl"
+        self.connection_string = connection_string
+        self.db_name = db_name
+        self.table_name = table_name
+        self.pickle_file_path = pickle_file_path
 
         # Domain-specific system prompt
         system_prompt = (
