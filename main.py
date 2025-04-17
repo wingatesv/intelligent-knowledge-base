@@ -132,7 +132,7 @@ class KnowledgeBaseAgent:
         if not chat_history:
             return
         if self.current_session is None:
-            self.current_session = self.rag.generate_chat_title(chat_history)
+            self.current_session = self.rag_system.generate_chat_title(chat_history)
             self.current_session = self.current_session.replace('"', '')
         if not self.current_session.endswith(".json"):
             self.current_session += ".json"
