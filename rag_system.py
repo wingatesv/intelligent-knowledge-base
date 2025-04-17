@@ -238,7 +238,7 @@ class RAGSystem:
         first = chat_history[0]
         text = first[1] if isinstance(first, (list, tuple)) else first
         template = (
-            f"You are a PLM Knowledge Agent. Generate a concise (max 5 words) chat title based on:\n""{text}""
+            f"You are a PLM Knowledge Agent. Generate a concise (max 5 words) chat title based on:\n""{text}"
         )
         try:
             pt = PromptTemplate(template=template)
