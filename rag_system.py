@@ -2,6 +2,7 @@ import os
 import logging
 import pickle
 import psycopg2
+from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from sqlalchemy.engine import make_url
 from collections import defaultdict
@@ -78,20 +79,34 @@ class RAGSystem:
 
     def create_database(self) -> None:
         """
-        Ensure the target DB exists by connecting to the admin DB and creating if missing.
+        Ensure the target DB exists by connecting to the admin DB
+        with autocommit enabled, then creating it if missing.
         """
         params = self._get_admin_conn_params()
-        with psycopg2.connect(**params) as conn:
-            conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        # Open a plain connection (no `with`), then switch on autocommit.
+        conn = psycopg2.connect(**params)
+        conn.autocommit = True  # <-- critical
+    
+        try:
             with conn.cursor() as cur:
+                # Check for existence
                 cur.execute(
-                    "SELECT 1 FROM pg_database WHERE datname = %s;", (self.db_name,)
+                    "SELECT 1 FROM pg_database WHERE datname = %s;",
+                    (self.db_name,)
                 )
                 if cur.fetchone():
                     logger.info("Database '%s' already exists.", self.db_name)
                 else:
-                    cur.execute(f"CREATE DATABASE {self.db_name}")
+                    # Safely inject the database name
+                    cur.execute(
+                        sql.SQL("CREATE DATABASE {}").format(
+                            sql.Identifier(self.db_name)
+                        )
+                    )
                     logger.info("Created database '%s'.", self.db_name)
+        finally:
+            conn.close()
+
 
     def _connect_target_db(self):
         """Connect directly to the target database."""
