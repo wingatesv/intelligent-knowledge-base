@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 # the correct file explorer using the correct directory
 
 
-class RAGChatApp:
+class KnowledgeBaseAgent:
     def __init__(self, config_path="config.yaml"):
         self.config = self.load_config(config_path)
         self.embedding_model = self.config.get("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
@@ -39,18 +39,16 @@ class RAGChatApp:
         os.makedirs(self.base_chat_history_dir, exist_ok=True)
 
         # State variables
-        self.role = "Student"  # default role
         self.current_session = None
 
         # Initialize RAG system
-        self.rag = RAGSystem(
-            api_token=self.api_token,
+        self.rag_system = RAGSystem(
             embedding_model=self.embedding_model,
             llm_model=self.llm_model,
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
         )
-        self.rag.initialize_rag(role=self.role)
+        self.rag_system.initialize_rag()
 
     @staticmethod
     def load_config(config_path):
@@ -60,32 +58,15 @@ class RAGChatApp:
             return yaml.safe_load(file)
 
     def get_chat_history_dir(self):
-        """Returns the directory for chat histories corresponding to the current role."""
-        role_dir = os.path.join(self.base_chat_history_dir, self.role)
-        os.makedirs(role_dir, exist_ok=True)
-        return role_dir
+        """Returns the directory for chat histories"""
+        chat_history_dir = os.path.join(self.base_chat_history_dir)
+        os.makedirs(chat_history_dir, exist_ok=True)
+        return chat_history_dir
 
     def generate_session_id(self):
         """Generates a new session id using the current timestamp."""
         return f"chat_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-    def change_role(self, role, chat_history):
-        """Changes the current role, saves the chat history, and reinitializes RAG."""
-        self.save_chat_session(chat_history)
-        # Clear chat history when switching role
-        chat_history = []
-        self.role = role
-        try:
-            self.rag.initialize_rag(role=role)
-            msg = f"Role switched to: {role}. RAG reinitialized."
-            logging.info(msg)
-        except Exception as e:
-            msg = f"Error reinitializing RAG: {str(e)}"
-            logging.error(msg)
-        file_update = gr.update(visible=(role != "Student"), interactive=(role != "Student"))
-        delete_update = gr.update(visible=(role != "Student"), interactive=(role != "Student"))
-        new_chat, chat_dropdown_update = self.new_chat_session(chat_history)
-        return msg, file_update, delete_update, new_chat, chat_dropdown_update
 
     def send_query(self, user_input, chat_history):
         """Appends the user's query to the chat history and obtains a response via RAG."""
@@ -93,7 +74,7 @@ class RAGChatApp:
             return chat_history, ""
         chat_history = chat_history + [[user_input, ""]]
         try:
-            response = self.rag.chat(user_input)
+            response = self.rag_system.chat(user_input)
         except Exception as e:
             response = f"Error: {str(e)}"
         chat_history[-1][1] = str(response)
@@ -111,7 +92,7 @@ class RAGChatApp:
             new_files.append(filename)
             logging.info(f"Uploaded: {filename}")
         for filename in new_files:
-            self.rag.update(os.path.join(self.internal_folder, filename))
+            self.rag_system.update(os.path.join(self.internal_folder, filename))
         return gr.FileExplorer(root_dir=self.get_chat_history_dir())
 
     def delete_files(self, selected_files):
@@ -124,7 +105,7 @@ class RAGChatApp:
             full_path = os.path.join(self.internal_folder, file_name)
             os.remove(full_path)
             logging.info(f"Deleted file: {file_name}")
-            self.rag.delete(full_path)
+            self.rag_system.delete(full_path)
         return gr.FileExplorer(root_dir=self.get_chat_history_dir())
 
     def update_file_explorer_1(self):
@@ -179,9 +160,6 @@ class RAGChatApp:
             self.save_chat_session(chat_history)
         self.current_session = None
         new_chat = []
-        if self.role.lower() == "teacher":
-            new_chat.append(["Let's dive into the documents. You will generate \
-            questions, and I will answer", self.rag.generate_teacher_question()])
         return new_chat, gr.FileExplorer(root_dir=self.internal_folder)
 
     def save_chat_and_update(self, chat_history):
@@ -230,17 +208,9 @@ class RAGChatApp:
                     )
 
                 with gr.Column(scale=8):
-                    with gr.Row(equal_height=True):
-                        role_dropdown = gr.Dropdown(
-                            choices=["Teacher", "Student"],
-                            value="Student",
-                            label="User role",
-                            scale=0.2
-                        )
-                        role_status = gr.Textbox(label="Role status", interactive=False, scale=1)
                     chat_interface = gr.Chatbot(label="Chat")
                     with gr.Row(equal_height=True):
-                        user_input_box = gr.Textbox(placeholder="Enter your query", label="Your query")
+                        user_input_box = gr.Textbox(placeholder="Ask anything")
                         send_button = gr.Button("Send", scale=0.05)
                     send_button.click(
                         fn=self.send_query,
@@ -257,11 +227,7 @@ class RAGChatApp:
                         inputs=[chat_interface, chat_history_list],
                         outputs=chat_interface
                     )
-                    role_dropdown.change(
-                        fn=self.change_role,
-                        inputs=[role_dropdown, chat_interface],
-                        outputs=[role_status, upload_button, delete_button, chat_interface, chat_history_list]
-                    ).then(fn=self.update_file_explorer_2, outputs=chat_history_list)
+                   
                     save_chat_button.click(
                         fn=self.save_chat_and_update,
                         inputs=chat_interface,
@@ -271,5 +237,5 @@ class RAGChatApp:
         demo.launch(share=True)
 
 if __name__ == "__main__":
-    app = RAGChatApp("config.yaml")
+    app = KnowledgeBaseAgent("config.yaml")
     app.launch()
