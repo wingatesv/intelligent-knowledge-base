@@ -209,7 +209,7 @@ class KnowledgeBaseAgent:
 
                 with gr.Column(scale=8):
                     gr.Markdown("## Chat Interface")
-                    chat_interface = gr.Chatbot(label="Chat")
+                    chat_interface = gr.Chatbot(label="Chat", type="tuples")
                     with gr.Row(equal_height=True):
                         user_input_box = gr.Textbox(placeholder="Ask anything", label="Query")
                         send_button = gr.Button("Send", scale=0.05)
