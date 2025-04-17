@@ -1,8 +1,6 @@
-API_TOKEN: 
 CHAT_DIR: chat_histories
 CHUNK_OVERLAP: 20
 CHUNK_SIZE: 512
 DOC_DIR: documents
 EMBEDDING_MODEL: BAAI/bge-small-en-v1.5
-INTERFACE_MODE: LIGHT
 LLM_MODEL: mistral
