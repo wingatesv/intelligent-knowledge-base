@@ -41,10 +41,19 @@ class RAGSystem:
         self.table_name = "knowledge_base"
         self.pickle_file_path = "file_nodes.pkl"
 
+        # Domain-specific system prompt
+        system_prompt = (
+            "You are a specialized Knowledge Base Agent for Product Lifecycle Management (PLM). "
+            "You understand PLM concepts including EBOM, MBOM, CBOM, change management, variant management, "
+            "manufacturing processes, CAD data, configuration management, and PLM software like PTC Windchill and PEVO. "
+            "When responding, provide concise, accurate answers with references to the knowledge base documents."
+            "If you are not sure with the answer, just say that you don't know the answer."
+        )
+
         # LlamaIndex configuration
         splitter = SentenceSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         Settings.text_splitter = splitter
-        Settings.llm = Ollama(model=llm_model, request_timeout=500.0)
+        Settings.llm = Ollama(model=llm_model, request_timeout=500.0, system_prompt=system_prompt)
         Settings.embed_model = HuggingFaceEmbedding(model_name=embedding_model)
 
         # Placeholders
@@ -225,7 +234,7 @@ class RAGSystem:
         first = chat_history[0]
         text = first[1] if isinstance(first, (list, tuple)) else first
         template = (
-            f"Generate a concise (max 5 words) chat title based on:\n\"{text}\""
+            f"You are a PLM Knowledge Agent. Generate a concise (max 5 words) chat title based on:\n""{text}""
         )
         try:
             pt = PromptTemplate(template=template)
