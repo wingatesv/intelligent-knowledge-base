@@ -30,7 +30,7 @@ class KnowledgeBaseAgent:
         self.chunk_overlap = self.config.get("CHUNK_OVERLAP", 20)
 
         # Setup folders
-        self.internal_folder = self.config.get("DOC_DIR", "documents")
+        self.internal_folder = self.config.get("DOC_DIR", "data")
         self.internal_folder = os.path.join(os.getcwd(), self.internal_folder)
         os.makedirs(self.internal_folder, exist_ok=True)
 
