@@ -1,6 +1,14 @@
-CHAT_DIR: "chat_histories"
-CHUNK_OVERLAP: 20
-CHUNK_SIZE: 512
 DOC_DIR: "data"
+CHAT_DIR: "chat_histories"
+
 EMBEDDING_MODEL: "BAAI/bge-small-en-v1.5"
 LLM_MODEL: "mistral"
+
+CHUNK_OVERLAP: 20
+CHUNK_SIZE: 512
+
+CONNECTION_STRING:  "postgresql://postgres:password@localhost:5432/postgres"
+DB_NAME: "vector_db"
+TABLE_NAME: "knowledge_base"
+PICKLE_FILE_PATH: "file_nodes.pkl"
+
