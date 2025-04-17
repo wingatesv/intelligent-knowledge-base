@@ -49,11 +49,12 @@ class KnowledgeBaseAgent:
         self.rag_system = RAGSystem(
             embedding_model=self.embedding_model,
             llm_model=self.llm_model,
-            chunk_size=self.chunk_size,
-            chunk_overlap=self.chunk_overlap,
             connection_string = self.connection_string,
             db_name = self.db_name,
-            pickle_file_path = self.pickle_file_path
+            table_name = self.table_name,
+            pickle_file_path = self.pickle_file_path,
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
         )
         self.rag_system.initialize_rag(self.internal_folder)
 
