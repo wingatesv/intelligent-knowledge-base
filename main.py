@@ -5,7 +5,7 @@ import shutil
 import yaml
 import logging
 import gradio as gr
-from llm_query import RAGSystem
+from rag_system import RAGSystem
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -24,12 +24,10 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 class RAGChatApp:
     def __init__(self, config_path="config.yaml"):
         self.config = self.load_config(config_path)
-        self.api_token = self.config.get("API_TOKEN", "")
         self.embedding_model = self.config.get("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
-        self.llm_model = self.config.get("LLM_MODEL", "google/gemma-2-2b-it")
+        self.llm_model = self.config.get("LLM_MODEL", "mistral")
         self.chunk_size = self.config.get("CHUNK_SIZE", 512)
-        self.chunk_overlap = self.config.get("CHUNK_OVERLAP", 10)
-        self.interface_mode = self.config.get("INTERFACE_MODE", "DARK").upper()
+        self.chunk_overlap = self.config.get("CHUNK_OVERLAP", 20)
 
         # Setup folders
         self.internal_folder = self.config.get("DOC_DIR", "documents")
