@@ -136,7 +136,6 @@ class KnowledgeBaseAgent:
             self.current_session = self.current_session.replace('"', '')
         if not self.current_session.endswith(".json"):
             self.current_session += ".json"
-        print('Chat title:', self.current_session)
         session_path = os.path.join(self.get_chat_history_dir(), self.current_session)
         try:
             session_data = [{"sender": msg[0], "message": msg[1]} for msg in chat_history]
