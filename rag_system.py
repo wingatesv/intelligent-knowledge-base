@@ -6,7 +6,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from sqlalchemy.engine import make_url
 from collections import defaultdict
 
-from llama_index import (
+from llama_index.core import (
     VectorStoreIndex,
     SimpleDirectoryReader,
     StorageContext,
@@ -14,7 +14,7 @@ from llama_index import (
     Settings,
 )
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.vector_stores import PGVectorStore
+from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.core.prompts.base import PromptTemplate
@@ -92,15 +92,14 @@ class RAGSystem:
         )
 
     def _has_vectors(self) -> bool:
-        """
-        Quick check: does the vector table contain at least one row? (LIMIT 1)
-        """
-        with self._connect_target_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    f"SELECT EXISTS (SELECT 1 FROM {self.table_name} LIMIT 1);"
-                )
-                return cur.fetchone()[0]
+        try:
+            with self._connect_target_db() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(f"SELECT EXISTS (SELECT 1 FROM {self.table_name} LIMIT 1);")
+                    return cur.fetchone()[0]
+        except psycopg2.errors.UndefinedTable:
+            logger.warning("Table '%s' does not exist yet.", self.table_name)
+            return False
 
     def initialize_rag(self, knowledge_database_dir):
         """
