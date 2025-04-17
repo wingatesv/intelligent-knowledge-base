@@ -102,7 +102,7 @@ class RAGSystem:
                 )
                 return cur.fetchone()[0]
 
-    def initialize_rag(self):
+    def initialize_rag(self, knowledge_database_dir):
         """
         Build or load the RAG index:
         1) Ensure DB
@@ -147,7 +147,7 @@ class RAGSystem:
                 logger.warning("No persisted file_nodes; mapping is empty.")
         else:
             logger.info("Building new index from documents.")
-            docs = SimpleDirectoryReader("documents").load_data()
+            docs = SimpleDirectoryReader(knowledge_database_dir).load_data()
             nodes = Settings.text_splitter.get_nodes_from_documents(docs)
 
             # build and persist file_nodes
