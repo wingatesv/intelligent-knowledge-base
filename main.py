@@ -48,7 +48,7 @@ class KnowledgeBaseAgent:
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
         )
-        self.rag_system.initialize_rag()
+        self.rag_system.initialize_rag(self.internal_folder)
 
     @staticmethod
     def load_config(config_path):
