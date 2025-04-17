@@ -216,6 +216,15 @@ class KnowledgeBaseAgent:
 
                 with gr.Column(scale=8):
                     gr.Markdown("## Chat Interface")
+                    gr.Markdown(
+                        '''
+                        <div style="text-align: center;">
+                            👋 <strong>Hello! I'm your PLM Knowledge Base Agent.</strong><br>
+                            Ask me anything about EBOMs, MBOMs, change orders, Windchill, or PLM processes.
+                        </div>
+                        ''',
+                        elem_id="intro-greeting"
+                    )
                     chat_interface = gr.Chatbot(label="Chat", type="tuples")
                     with gr.Row(equal_height=True):
                         user_input_box = gr.Textbox(placeholder="Ask anything", label="Query")
