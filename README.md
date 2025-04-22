@@ -34,4 +34,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
+## Llama deploy
+https://docs.llamaindex.ai/en/stable/module_guides/llama_deploy/10_getting_started/
+
 
