@@ -36,5 +36,21 @@ python main.py
 
 ## Llama deploy
 https://docs.llamaindex.ai/en/stable/module_guides/llama_deploy/10_getting_started/
-
+Start an API server instance locally.
+```bash
+python -m llama_deploy.apiserver
+```
+```bash
+INFO:     Started server process [18886]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8001 (Press CTRL+C to quit)
+```
+From another shell, use llamactl to create the deployment:
+```bash
+llamactl deploy deployment.yml
+```
+```bash
+Deployment successful: QuickStart
+```
 
