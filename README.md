@@ -15,6 +15,9 @@ docker run -e POSTGRES_USER=postgres \
 ```bash
 sudo apt update
 sudo apt install postgresql-client
+```
+Connect to database
+```bash
 psql -h localhost -U postgres -d vector_db -p 5432
 ```
 ## Clone repo
@@ -25,6 +28,10 @@ cd intelligent-knowledge-base
 ## Install requirements
 ```bash
 pip install -r requirements.txt
+```
+## Run the main.py
+```bash
+python main.py
 ```
 
 
