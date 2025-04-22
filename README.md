@@ -58,6 +58,7 @@ python main.py
 
 ## Llama deploy
 https://docs.llamaindex.ai/en/stable/module_guides/llama_deploy/10_getting_started/
+https://medium.com/google-cloud/deploying-llamaindex-workflows-to-cloud-run-with-llama-deploy-73429cfd74e3
 Start an API server instance locally.
 ```bash
 python -m llama_deploy.apiserver
@@ -77,4 +78,5 @@ Deployment successful: QuickStart
 ```
 ## Notes
 need to start ollama and postgresql via docker everytime after studio sleeps
+need to do it manually, not via llama_deploy.apiserver
 
