@@ -8,3 +8,6 @@ cd intelligent-knowledge-base
 ```bash
 pip install -r requirements.txt
 ```
+
+## Install Ollama on Lightning Studio
+https://techxplainator.com/install-and-run-ollama-on-lightning-ai/
