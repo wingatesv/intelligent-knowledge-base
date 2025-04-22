@@ -1,5 +1,5 @@
 gradio
-psycopg2
+psycopg2-binary
 sqlalchemy
 llama-index
 llama-index-embeddings-huggingface
