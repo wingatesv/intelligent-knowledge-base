@@ -1,9 +1,24 @@
 # intelligent-knowledge-base
 ## Install Ollama on Lightning Studio
 https://techxplainator.com/install-and-run-ollama-on-lightning-ai/
+### Start Ollama server
+```bash
+ollama serve
+```
+Get LLM
+```bash
+ollama pull mistral
+```
+verify LLM
+```bash
+ollama run mistral --verbose
+/bye # to stop LLM
+```
 ## Install PostgreSQL via Docker
 https://medium.com/@adarsh.ajay/setting-up-postgresql-with-pgvector-in-docker-a-step-by-step-guide-d4203f6456bd
 ```bash
+docker pull ankane/pgvector
+
 docker run -e POSTGRES_USER=postgres \
            -e POSTGRES_PASSWORD=password \
            -e POSTGRES_DB=vector_db \
@@ -18,7 +33,14 @@ sudo apt install postgresql-client
 ```
 Connect to database
 ```bash
+# Connect to database
 psql -h localhost -U postgres -d vector_db -p 5432
+
+# Enabling pgvector
+CREATE EXTENSION vector;
+
+# Verifying the Installation
+SELECT * FROM pg_extension;
 ```
 ## Clone repo
 ```bash
@@ -53,4 +75,6 @@ llamactl deploy deployment.yml
 ```bash
 Deployment successful: QuickStart
 ```
+## Notes
+need to start ollama and postgresql via docker everytime after studio sleeps
 
