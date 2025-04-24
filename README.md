@@ -61,22 +61,16 @@ https://docs.llamaindex.ai/en/stable/module_guides/llama_deploy/10_getting_start
 https://medium.com/google-cloud/deploying-llamaindex-workflows-to-cloud-run-with-llama-deploy-73429cfd74e3
 Start an API server instance locally.
 ```bash
+cd intelligent-knowledge-base
 python -m llama_deploy.apiserver
-```
-```bash
-INFO:     Started server process [18886]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8001 (Press CTRL+C to quit)
 ```
 From another shell, use llamactl to create the deployment:
 ```bash
+cd intelligent-knowledge-base
 llamactl deploy deployment.yml
 ```
 ```bash
 Deployment successful: QuickStart
 ```
 ## Notes
-need to start ollama and postgresql via docker everytime after studio sleeps
-need to do it manually, not via llama_deploy.apiserver
 
